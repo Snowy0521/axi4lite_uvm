@@ -31,6 +31,10 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
     forever begin
       axi4lite_txn tr;
       seq_item_port.get_next_item(tr);
+      `uvm_info("DRV",
+  $sformatf("Got transaction: op=%0d addr=0x%0h data=0x%0h",
+            tr.op, tr.addr, tr.wdata),
+  UVM_LOW)
       if (tr.op == AXI_WRITE) drive_write(tr);
       else                    drive_read(tr);
       seq_item_port.item_done();

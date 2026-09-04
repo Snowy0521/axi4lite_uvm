@@ -29,6 +29,8 @@ module tb_top;
     rst_n = 0;
     repeat (3) @(posedge clk);
     rst_n = 1;
+
+    @(posedge clk);
   end
 
   // ------------------------------------------------------------------
@@ -78,6 +80,11 @@ module tb_top;
   initial begin
     $dumpfile("tb_top.vcd");
     $dumpvars(0, tb_top);
+  end
+
+  initial begin
+  $monitor("T=%0t rst_n=%b awvalid=%b awready=%b wvalid=%b wready=%b bvalid=%b",
+           $time, rst_n, intf.awvalid, intf.awready, intf.wvalid, intf.wready, intf.bvalid);
   end
 
 endmodule

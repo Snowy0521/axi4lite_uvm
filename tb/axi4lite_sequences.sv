@@ -116,7 +116,9 @@ class axi4lite_random_seq extends axi4lite_base_seq;
 
   task body();
     repeat (axi4lite_pkg::NUM_TXNS) begin
-      axi4lite_txn wr = axi4lite_txn::type_id::create("wr");
+      axi4lite_txn wr, rd;
+
+      wr = axi4lite_txn::type_id::create("wr");
       start_item(wr);
       if (!wr.randomize() with {
         op   == AXI_WRITE;
@@ -127,7 +129,7 @@ class axi4lite_random_seq extends axi4lite_base_seq;
       }) `uvm_error("SEQ", "randomize failed in axi4lite_random_seq for write transaction")
       finish_item(wr);
 
-      axi4lite_txn rd = axi4lite_txn::type_id::create("rd");
+      rd = axi4lite_txn::type_id::create("rd");
       start_item(rd);
       if (!rd.randomize() with {
         op   == AXI_READ;

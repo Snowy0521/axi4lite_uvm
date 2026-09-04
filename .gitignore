@@ -1,0 +1,19 @@
+# Verilator
+obj_dir/
+*.vcd
+*.fst
+*.log
+
+# Simulation outputs
+simv
+simv.daidir/
+csrc/
+*.key
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
