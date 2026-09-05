@@ -46,18 +46,18 @@ class axi4lite_monitor extends uvm_monitor;
 
       fork
         begin : do_aw 
-          do @(vif.mon_cb); while (!(vif.mon_cb.awvalid && vif.mon_cb.awready));
-          tr.addr = vif.mon_cb.awaddr;
+          do @(posedge vif.clk); while (!(vif.awvalid && vif.awready));
+          tr.addr = vif.awaddr;
         end
         begin : do_w
-          do @(vif.mon_cb); while (!(vif.mon_cb.wvalid && vif.mon_cb.wready));
-          tr.wdata = vif.mon_cb.wdata;
-          tr.wstrb = vif.mon_cb.wstrb;
+          do @(posedge vif.clk); while (!(vif.wvalid && vif.wready));
+          tr.wdata = vif.wdata;
+          tr.wstrb = vif.wstrb;
         end
       join
 
-      do @(vif.mon_cb); while (!(vif.mon_cb.bvalid && vif.mon_cb.bready));
-      tr.resp = vif.mon_cb.bresp;
+      do @(posedge vif.clk); while (!(vif.bvalid && vif.bready));
+      tr.resp = vif.bresp;
 
       `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
       ap.write(tr);
@@ -73,12 +73,12 @@ class axi4lite_monitor extends uvm_monitor;
       axi4lite_txn tr = axi4lite_txn::type_id::create("tr");
       tr.op = AXI_READ;
 
-      do @(vif.mon_cb); while (!(vif.mon_cb.arvalid && vif.mon_cb.arready));
-      tr.addr = vif.mon_cb.araddr;
+      do @(posedge vif.clk); while (!(vif.arvalid && vif.arready));
+      tr.addr = vif.araddr;
 
-      do @(vif.mon_cb); while (!(vif.mon_cb.rvalid && vif.mon_cb.rready));
-      tr.rdata = vif.mon_cb.rdata;
-      tr.resp  = vif.mon_cb.rresp;
+      do @(posedge vif.clk); while (!(vif.rvalid && vif.rready));
+      tr.rdata = vif.rdata;
+      tr.resp  = vif.rresp;
 
       `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
       ap.write(tr);
