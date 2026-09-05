@@ -65,7 +65,22 @@ interface axi4lite_if #(
     input rdata, rresp, rvalid, rready;
   endclocking
 
-  modport driver  (clocking drv_cb);
-  modport monitor (clocking mon_cb);
+  // verilator doesn't support modport clocking block
+  //modport driver  (clocking drv_cb);
+  //modport monitor (clocking mon_cb);
+
+  modport driver (
+    input  clk, rst_n, awready, wready, bresp, bvalid, arready, rdata, rresp, rvalid,
+    output awaddr, awvalid, wdata, wstrb, wvalid, bready, araddr, arvalid, rready
+  );
+
+  modport monitor (
+    input clk, rst_n;
+    input awaddr, awvalid, awready;
+    input wdata, wstrb, wvalid, wready;
+    input bresp, bvalid, bready;
+    input araddr, arvalid, arready;
+    input rdata, rresp, rvalid, rready;
+  );
 
 endinterface
