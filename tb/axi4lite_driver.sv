@@ -65,8 +65,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
             do @(vif.drv_cb); while (!vif.drv_cb.awready);
           end
           begin : awready_timeout
-            //repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
-            for (int i = 0; i < axi4lite_pkg::TIMEOUT_CYCLES; i++) @(vif.drv_cb);
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
             `uvm_error("DRV_TIMEOUT", "timed out waiting for AWREADY")
           end
         join_any
@@ -82,8 +81,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
             do @(vif.drv_cb); while (!vif.drv_cb.wready);
           end
           begin : wready_timeout
-            //repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
-            for (int i = 0; i < axi4lite_pkg::TIMEOUT_CYCLES; i++) @(vif.drv_cb);
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
             `uvm_error("DRV_TIMEOUT", "timed out waiting for WREADY")
           end
         join_any
@@ -99,8 +97,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
         tr.resp = vif.drv_cb.bresp; // update transaction object using "="
       end
       begin : bresp_timeout
-        //repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
-        for (int i = 0; i < axi4lite_pkg::TIMEOUT_CYCLES; i++) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for BVALID")
       end
     join_any
@@ -118,8 +115,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
         do @(vif.drv_cb); while (!vif.drv_cb.arready);
       end
       begin : arready_timeout
-        //repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
-        for (int i = 0; i < axi4lite_pkg::TIMEOUT_CYCLES; i++) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for ARREADY")
       end
     join_any
@@ -133,8 +129,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
         tr.resp  = vif.drv_cb.rresp;
       end
       begin : rvalid_timeout
-        //repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
-        for (int i = 0; i < axi4lite_pkg::TIMEOUT_CYCLES; i++) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for RVALID")
       end
     join_any
