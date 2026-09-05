@@ -25,7 +25,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
     // super.run_phase(phase); --- IGNORE --- // its a virtual task, so it does nothing anyway
     // don't drive anything meaningful until reset has released
-    wait (vif.drv_cb.rst_n === 1'b1); // “===” return only true and false, not x or z
+    wait (vif.rst_n === 1'b1); // “===” return only true and false, not x or z
     reset_signals();
 
     forever begin
@@ -43,13 +43,13 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
   task reset_signals();
     // drive output signals from interface using "<="
-    vif.drv_cb.awvalid <= 1'b0;
-    vif.drv_cb.wvalid  <= 1'b0;
-    vif.drv_cb.bready  <= 1'b1;   // always ready to accept a write response in this simple driver
-    vif.drv_cb.arvalid <= 1'b0;
-    vif.drv_cb.rready  <= 1'b1;   // always ready to accept read data in this simple driver
+    vif.awvalid <= 1'b0;
+    vif.wvalid  <= 1'b0;
+    vif.bready  <= 1'b1;   // always ready to accept a write response in this simple driver
+    vif.arvalid <= 1'b0;
+    vif.rready  <= 1'b1;   // always ready to accept read data in this simple driver
 
-    @(vif.drv_cb);
+    @(posedge vif.clk);
   endtask
 
   // ------------------------------------------------------------------
@@ -58,46 +58,46 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
   task drive_write(axi4lite_txn tr);
     fork
       begin : do_aw
-        vif.drv_cb.awaddr  <= tr.addr;
-        vif.drv_cb.awvalid <= 1'b1;
+        vif.awaddr  <= tr.addr;
+        vif.awvalid <= 1'b1;
         fork
           begin : wait_awready
-            do @(vif.drv_cb); while (!vif.drv_cb.awready);
+            do @(posedge vif.clk); while (!vif.awready);
           end
           begin : awready_timeout
-            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
             `uvm_error("DRV_TIMEOUT", "timed out waiting for AWREADY")
           end
         join_any
         disable fork;
-        vif.drv_cb.awvalid <= 1'b0;
+        vif.awvalid <= 1'b0;
       end
       begin : do_w
-        vif.drv_cb.wdata  <= tr.wdata;
-        vif.drv_cb.wstrb  <= tr.wstrb;
-        vif.drv_cb.wvalid <= 1'b1;
+        vif.wdata  <= tr.wdata;
+        vif.wstrb  <= tr.wstrb;
+        vif.wvalid <= 1'b1;
         fork
           begin : wait_wready
-            do @(vif.drv_cb); while (!vif.drv_cb.wready);
+            do @(posedge vif.clk); while (!vif.wready);
           end
           begin : wready_timeout
-            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
             `uvm_error("DRV_TIMEOUT", "timed out waiting for WREADY")
           end
         join_any
         disable fork;
-        vif.drv_cb.wvalid <= 1'b0;
+        vif.wvalid <= 1'b0;
       end
     join
 
     // wait for the write response
     fork
       begin : wait_bvalid
-        do @(vif.drv_cb); while (!vif.drv_cb.bvalid);
-        tr.resp = vif.drv_cb.bresp; // update transaction object using "="
+        do @(posedge vif.clk); while (!vif.bvalid);
+        tr.resp = vif.bresp; // update transaction object using "="
       end
       begin : bresp_timeout
-        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for BVALID")
       end
     join_any
@@ -108,28 +108,28 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
   // Read
   // ------------------------------------------------------------------
   task drive_read(axi4lite_txn tr);
-    vif.drv_cb.araddr  <= tr.addr;
-    vif.drv_cb.arvalid <= 1'b1;
+    vif.araddr  <= tr.addr;
+    vif.arvalid <= 1'b1;
     fork
       begin : wait_arready
-        do @(vif.drv_cb); while (!vif.drv_cb.arready);
+        do @(posedge vif.clk); while (!vif.arready);
       end
       begin : arready_timeout
-        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for ARREADY")
       end
     join_any
     disable fork;
-    vif.drv_cb.arvalid <= 1'b0;
+    vif.arvalid <= 1'b0;
 
     fork
       begin : wait_rvalid
-        do @(vif.drv_cb); while (!vif.drv_cb.rvalid);
-        tr.rdata = vif.drv_cb.rdata;
-        tr.resp  = vif.drv_cb.rresp;
+        do @(posedge vif.clk); while (!vif.rvalid);
+        tr.rdata = vif.rdata;
+        tr.resp  = vif.rresp;
       end
       begin : rvalid_timeout
-        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(vif.drv_cb);
+        repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
         `uvm_error("DRV_TIMEOUT", "timed out waiting for RVALID")
       end
     join_any
