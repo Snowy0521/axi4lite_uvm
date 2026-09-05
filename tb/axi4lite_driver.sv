@@ -49,7 +49,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
     vif.drv_cb.arvalid <= 1'b0;
     vif.drv_cb.rready  <= 1'b1;   // always ready to accept read data in this simple driver
 
-    @posedge(vif.drv_cb);
+    @(vif.drv_cb);
   endtask
 
   // ------------------------------------------------------------------
