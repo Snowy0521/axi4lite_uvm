@@ -48,7 +48,8 @@ interface axi4lite_if #(
   clocking drv_cb @(posedge clk);
     default input #1step output #2;
     output awaddr, awvalid, wdata, wstrb, wvalid, bready, araddr, arvalid, rready;
-    input  awready, wready, bresp, bvalid, arready, rdata, rresp, rvalid, rst_n;
+    input  rst_n;
+    input  awready, wready, bresp, bvalid, arready, rdata, rresp, rvalid;
   endclocking
 
   // ---------------------------------------------------------------------
@@ -56,7 +57,7 @@ interface axi4lite_if #(
   // ---------------------------------------------------------------------
   clocking mon_cb @(posedge clk);
     default input #1step;
-    input rst_n
+    input rst_n;
     input awaddr, awvalid, awready;
     input wdata, wstrb, wvalid, wready;
     input bresp, bvalid, bready;
