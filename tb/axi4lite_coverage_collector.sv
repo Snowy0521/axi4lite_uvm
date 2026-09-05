@@ -63,9 +63,11 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
 
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
+    `ifndef
         `uvm_info("COVERAGE",
             $sformatf("Coverage for %s: %0.2f%%", get_full_name(), cg_axi4lite.get_coverage()),
             UVM_LOW)
+     `endif
     endfunction
 endclass
 
