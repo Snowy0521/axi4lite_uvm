@@ -25,7 +25,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
     // super.run_phase(phase); --- IGNORE --- // its a virtual task, so it does nothing anyway
     // don't drive anything meaningful until reset has released
-    wait (vif.rst_n === 1'b1); // “===” return only true and false, not x or z
+    wait (vif.drv_cb.rst_n === 1'b1); // “===” return only true and false, not x or z
     reset_signals();
 
     forever begin
@@ -48,6 +48,8 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
     vif.drv_cb.bready  <= 1'b1;   // always ready to accept a write response in this simple driver
     vif.drv_cb.arvalid <= 1'b0;
     vif.drv_cb.rready  <= 1'b1;   // always ready to accept read data in this simple driver
+
+    @posedge(vif.drv_cb);
   endtask
 
   // ------------------------------------------------------------------
