@@ -39,7 +39,8 @@ interface axi4lite_if #(
   logic [1:0]              rresp;
   logic                    rvalid;
   logic                    rready;
-
+  
+`ifndef VERILATOR
   // ---------------------------------------------------------------------
   // Driver clocking block: drives master-side signals, samples slave
   // responses. Output skew keeps driven values from racing the DUT's own
@@ -66,8 +67,9 @@ interface axi4lite_if #(
   endclocking
 
   
-  //modport driver  (clocking drv_cb);
-  //modport monitor (clocking mon_cb);
+  modport driver  (clocking drv_cb);
+  modport monitor (clocking mon_cb);
+`endif
 
   modport driver (
     input  clk, rst_n, awready, wready, bresp, bvalid, arready, rdata, rresp, rvalid,
