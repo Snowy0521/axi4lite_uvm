@@ -71,8 +71,10 @@ module tb_top;
   // UVM setup + test launch
   // ------------------------------------------------------------------
   initial begin
-    uvm_config_db#(virtual axi4lite_if.driver)::set(null, "*", "vif", intf);
-    uvm_config_db#(virtual axi4lite_if.monitor)::set(null, "*", "vif", intf);
+    //uvm_config_db#(virtual axi4lite_if.driver)::set(null, "*", "vif", intf);
+    //uvm_config_db#(virtual axi4lite_if.monitor)::set(null, "*", "vif", intf);
+    axi4lite_pkg::g_drv_vif = intf;
+    axi4lite_pkg::g_mon_vif = intf;
     run_test();   // reads +UVM_TESTNAME from the command line
   end
 
