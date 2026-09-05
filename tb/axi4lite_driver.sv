@@ -17,8 +17,9 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    if (!uvm_config_db#(virtual axi4lite_if.driver)::get(this, "", "vif", vif))
-      `uvm_fatal("NOVIF", "virtual interface (driver modport) not found in config_db")
+    //if (!uvm_config_db#(virtual axi4lite_if.driver)::get(this, "", "vif", vif))
+    //  `uvm_fatal("NOVIF", "virtual interface (driver modport) not found in config_db")
+    vif = axi4lite_pkg::g_drv_vif;
   endfunction
 
   task run_phase(uvm_phase phase);
