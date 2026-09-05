@@ -30,4 +30,7 @@ package axi4lite_pkg;
   `include "axi4lite_env.sv"
   `include "axi4lite_tests.sv"
 
+  virtual axi4lite_if.driver  g_drv_vif;
+  virtual axi4lite_if.monitor g_mon_vif;
+
 endpackage
