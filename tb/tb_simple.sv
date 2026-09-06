@@ -5,8 +5,8 @@
 //
 // What it does:
 //   1. Generate clock + reset
-//   2. Write 0xCAFEBABE to register 0 (addr 0x00)
-//   3. Write 0x12345678 to register 1 (addr 0x04)
+//   2. Write a 32/64 pattern to register 0 
+//   3. Write a 32/64 pattern to register 1
 //   4. Read back register 0, check it matches
 //   5. Read back register 1, check it matches
 //   6. Attempt a write to an out-of-range address, check SLVERR comes back
@@ -18,8 +18,11 @@
 module tb_simple;
 
   localparam int ADDR_WIDTH = 8;
-  localparam int DATA_WIDTH = 32;
-  localparam int NUM_REGS   = 16;
+  //localparam int DATA_WIDTH = 32;
+  localparam int DATA_WIDTH = 64;
+  localparam int NUM_REGS   = 16; 
+  localparam int ADDR_LSB = $clog2(DATA_WIDTH / 8);
+  localparam int REG_STRIDE = DATA_WIDTH / 8; 
 
   // ------------------------------------------------------------------
   // DUT signals 
@@ -97,7 +100,7 @@ module tb_simple;
     awaddr  <= addr;
     awvalid <= 1'b1;
     wdata   <= data;
-    wstrb   <= 4'b1111;
+    wstrb   <= '1;
     wvalid  <= 1'b1;
 
     // wait for both AWREADY and WREADY (they may arrive on different cycles)
@@ -156,30 +159,49 @@ module tb_simple;
   bit [1:0]            rd_resp;
 
   initial begin
+    bit [DATA_WIDTH-1:0] reg0_data, reg1_data, oor_data;
+
     wait (rst_n === 1'b1);
     @(posedge clk);
+    
+    case (DATA_WIDTH)
+	32: begin 
+ 	   reg0_data = 32'hCAFE_BABE;
+    	   reg1_data = 32'h1234_5678;
+	   oor_data  = 32'hDEAD_DEAD;
+	end 
+	64: begin 
+	   reg0_data = 64'hCAFE_BABE_12345678;
+	   reg1_data = 64'hDEADBEEF_98765432;
+	   oor_data = 64'hDEAD_DEAD_DEAD_DEAD;
+	end 
+	default: begin
+	   $fatal(1, "tb_simple: DATA_WIDTH=%0d invalid, only 32/64 supported", DATA_WIDTH);
+	end 
+   endcase
 
-    // 1) write reg0 and reg1
-    do_write(8'h00, 32'hCAFE_BABE);
-    do_write(8'h04, 32'h1234_5678);
+   // 1) write reg0 and reg1
+   do_write(8'h00, 	reg0_data);
+   do_write(8'(REG_STRIDE), reg1_data);
+
 
     // 2) read back and check
     do_read(8'h00, rd_data, rd_resp);
-    check("reg0 read-back", rd_data, 32'hCAFE_BABE);
+    check("reg0 read-back", rd_data, reg0_data);
     check_resp("reg0 read", rd_resp, 2'b00);
 
-    do_read(8'h04, rd_data, rd_resp);
-    check("reg1 read-back", rd_data, 32'h1234_5678);
+    do_read(8'(REG_STRIDE), rd_data, rd_resp);
+    check("reg1 read-back", rd_data, reg1_data);
     check_resp("reg1 read", rd_resp, 2'b00);
 
     // 3) out-of-range write -> expect SLVERR
-    do_write(8'hFC, 32'hDEAD_DEAD);   // word_idx = 0xFC>>2 = 63, way beyond NUM_REGS=16
+    do_write(8'hFC, oor_data);   // word_idx = 0xFC>>2 = 63, way beyond NUM_REGS=16
     check_resp("out-of-range write", bresp, 2'b10);
 
     // 4) out-of-range read -> expect SLVERR, rdata == 0
     do_read(8'hFC, rd_data, rd_resp);
     check_resp("out-of-range read", rd_resp, 2'b10);
-    check("out-of-range read data", rd_data, 32'h0);
+    check("out-of-range read data", rd_data, '0);
 
     // ------------------------------------------------------------------
     // Summary

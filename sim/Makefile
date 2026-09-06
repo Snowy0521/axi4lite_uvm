@@ -47,7 +47,12 @@ xrun:
 # Verilator
 # --------------------------------------------------------------------------
 VERILATOR       ?= verilator
-VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc)
+VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc) \
+                   --timescale 1ns/1ps \
+                   -Wno-TIMESCALEMOD \
+                   -Wno-WIDTHEXPAND \
+                   -Wno-WIDTHTRUNC
+
 UVM_VERBOSITY   ?= UVM_HIGH
 verilator:
 	$(VERILATOR) $(VERILATOR_FLAGS) -sv --top-module tb_top \
@@ -58,5 +63,48 @@ verilator:
 	     -o sim_$(TEST)
 	./obj_dir/sim_$(TEST) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED) +UVM_VERBOSITY=$(UVM_VERBOSITY)
 
+
+
+
+# ============================================================================
+# Plain (non-UVM) smoke test — tb_simple.sv drives axi4lite_slave directly,
+# no UVM agent/package involved. Use this to sanity-check the DUT in
+# isolation before/instead of debugging through the full UVM environment.
+# ============================================================================
+SMOKE_FILES := $(RTL_FILES) $(TB_DIR)/tb_simple.sv
+
+# --------------------------------------------------------------------------
+# Questa/ModelSim (smoke)
+# --------------------------------------------------------------------------
+smoke-questa:
+	vlib work
+	vlog -sv $(SMOKE_FILES)
+	vsim -c -sv_seed $(SEED) tb_simple -do "run -all; quit"
+
+# --------------------------------------------------------------------------
+# Synopsys VCS (smoke)
+# --------------------------------------------------------------------------
+smoke-vcs:
+	vcs -sverilog -full64 $(SMOKE_FILES) -o simv_smoke
+	./simv_smoke
+
+# --------------------------------------------------------------------------
+# Cadence Xcelium (smoke)
+# --------------------------------------------------------------------------
+smoke-xrun:
+	xrun -sv $(SMOKE_FILES) -svseed $(SEED)
+
+# --------------------------------------------------------------------------
+# Verilator (smoke) — no UVM_HOME, no uvm_pkg.sv, no +UVM_TESTNAME needed.
+# --------------------------------------------------------------------------
+smoke-verilator:
+	$(VERILATOR) --binary --timing --trace -Wno-fatal -j $(shell nproc) \
+	     -sv --top-module tb_simple \
+	     --Mdir obj_dir_smoke \
+	     +incdir+$(TB_DIR) +incdir+$(RTL_DIR) \
+	     $(SMOKE_FILES) \
+	     -o sim_smoke
+	./obj_dir_smoke/sim_smoke
+
 clean:
-	rm -rf obj_dir *.vcd
+	rm -rf obj_dir obj_dir_smoke *.vcd

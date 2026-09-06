@@ -2,10 +2,11 @@
 // axi4lite_slave.sv
 //
 // A simple AXI4-Lite slave with a small memory-mapped register
-// file (NUM_REGS x 32-bit registers).
+// file (NUM_REGS x DATA_WIDTH-bit registers).
 //
 // Supported behavior:
-//   - Single-beat, 32-bit-wide read/write transactions only 
+//   - Single-beat, DATA_WIDTH-bit-wide read/write transactions only
+//   - DATA_WIDTH must be fixed at either 32-bit or 64-bit 
 //   - WVALID/WDATA and AWVALID/AWADDR are accepted independently and matched
 //   - Out-of-range address on write returns SLVERR and does NOT write
 //   - Out-of-range address on read returns SLVERR (2'b10) with 0 data
@@ -19,9 +20,10 @@ typedef enum logic [1:0] {
 } axi_resp_e;
 
 module axi4lite_slave #(
-  parameter int ADDR_WIDTH = 8,     // byte address width exposed on the bus
-  parameter int DATA_WIDTH = 32,
-  parameter int NUM_REGS   = 16     // reg file depth (word-addressed internally)
+  parameter int ADDR_WIDTH = 8,     
+  //parameter int DATA_WIDTH = 32,
+  parameter int DATA_WIDTH = 64,
+  parameter int NUM_REGS   = 16     
 )(
   input  logic                    clk,
   input  logic                    rst_n,
@@ -53,6 +55,11 @@ module axi4lite_slave #(
   output logic                    rvalid,
   input  logic                    rready
 );
+  
+  initial begin 
+	  assert (DATA_WIDTH == 32 || DATA_WIDTH == 64)
+	  else $fatal(1, "axi4lite_slave: DATA_WIDTH=%0d is not legal, must be 32 or 64", DATA_WIDTH);
+  end   
 
   localparam int ADDR_LSB = $clog2(DATA_WIDTH / 8);
   // -----------------------------------------------------------------------

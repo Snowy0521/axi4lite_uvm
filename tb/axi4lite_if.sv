@@ -11,8 +11,8 @@
 // ============================================================================
 
 interface axi4lite_if #(
-  parameter int ADDR_WIDTH = 8,
-  parameter int DATA_WIDTH = 32
+  parameter int ADDR_WIDTH = axi4lite_pkg::ADDR_WIDTH,
+  parameter int DATA_WIDTH = axi4lite_pkg::DATA_WIDTH
 )(
   input logic clk,
   input logic rst_n

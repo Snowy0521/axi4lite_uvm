@@ -9,6 +9,8 @@
 class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
     `uvm_component_utils(axi4lite_coverage_collector)
 
+    localparam int unsigned BYTES_PER_WORD = axi4lite_pkg::DATA_WIDTH / 8;
+
     axi4lite_txn tr;
 
     covergroup cg_axi4lite; 
@@ -20,7 +22,7 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
         }
 
         cp_addr: coverpoint tr.addr {
-            bins in_range = {[0 : (axi4lite_pkg::NUM_REGS-1)*4]}; // valid address range for the DUT
+            bins in_range = {[0 : (axi4lite_pkg::NUM_REGS-1)*BYTES_PER_WORD]}; // valid address range for the DUT
             bins out_of_range = default; // any address outside the valid range
         }
 
@@ -31,12 +33,8 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
         }
 
         cp_wstrb: coverpoint tr.wstrb {
-            bins all_zero = {4'b0000};
-            bins all_one = {4'b1111};
-            bins byte0 = {4'b0001};
-            bins byte1 = {4'b0010};
-            bins byte2 = {4'b0100};
-            bins byte3 = {4'b1000};
+            bins all_zero = {'0};
+            bins all_one =  {'1};
             bins others = default;
         }
 

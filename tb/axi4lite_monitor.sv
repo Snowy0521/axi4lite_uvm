@@ -11,8 +11,12 @@
 
 class axi4lite_monitor extends uvm_monitor;
   `uvm_component_utils(axi4lite_monitor)
+  
+  virtual axi4lite_if #(
+    .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+  ).monitor vif;
 
-  virtual axi4lite_if.monitor vif;
   uvm_analysis_port #(axi4lite_txn) ap;  
 
   function new(string name, uvm_component parent);
@@ -22,8 +26,11 @@ class axi4lite_monitor extends uvm_monitor;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    if (!uvm_config_db#(virtual axi4lite_if.monitor)::get(this, "", "vif", vif))
-      `uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
+    if (!uvm_config_db#(virtual axi4lite_if#(
+   	 .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    	 .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+       ).monitor)::get(this, "", "vif", vif))
+       	`uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
   endfunction
 
   task run_phase(uvm_phase phase);
