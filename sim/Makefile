@@ -6,7 +6,7 @@
 # ============================================================================
 
 TEST      ?= axi4lite_smoke_test
-SEED      ?= 1
+SEED      ?= 42
 RTL_DIR   := ../rtl
 TB_DIR    := ../tb
 
@@ -48,7 +48,7 @@ xrun:
 # --------------------------------------------------------------------------
 VERILATOR       ?= verilator
 VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc)
-
+UVM_VERBOSITY   ?= UVM_HIGH
 verilator:
 	$(VERILATOR) $(VERILATOR_FLAGS) -sv --top-module tb_top \
 	     +incdir+$(UVM_HOME) +define+UVM_NO_DPI \
@@ -56,7 +56,7 @@ verilator:
 	     $(UVM_HOME)/uvm_pkg.sv \
 	     $(RTL_FILES) $(TB_FILES) \
 	     -o sim_$(TEST)
-	./obj_dir/sim_$(TEST) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED)
+	./obj_dir/sim_$(TEST) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED) +UVM_VERBOSITY=$(UVM_VERBOSITY)
 
 clean:
 	rm -rf obj_dir *.vcd

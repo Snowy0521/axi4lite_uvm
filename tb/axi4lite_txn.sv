@@ -46,9 +46,9 @@ class axi4lite_txn extends uvm_sequence_item;
 
   function string convert2string();
     if (op == AXI_WRITE)
-      return $sformatf("WRITE addr=0x%0h wdata=0x%0h wstrb=0b%0b", addr, wdata, wstrb);
+      return $sformatf("WRITE addr=0x%0h wdata=0x%0h wstrb=0b%b", addr, wdata, wstrb);
     else
-      return $sformatf("READ  addr=0x%0h rdata=0x%0h resp=0b%0b", addr, rdata, resp);
+      return $sformatf("READ  addr=0x%0h rdata=0x%0h resp=0b%b", addr, rdata, resp);
   endfunction
 
 endclass

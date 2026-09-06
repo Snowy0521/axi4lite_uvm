@@ -17,3 +17,4 @@ csrc/
 # Python
 __pycache__/
 *.pyc
+.*.swp

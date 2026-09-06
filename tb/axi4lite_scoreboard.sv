@@ -34,7 +34,7 @@ class axi4lite_scoreboard extends uvm_component;
     int unsigned word_idx = tr.addr >> 2;
     bit          in_range = (word_idx < num_regs);
 
-    `uvm_info("SB", "write() entered", UVM_LOW)
+    `uvm_info("SB", "write() entered", UVM_HIGH)
     
     if (tr.op == AXI_WRITE) begin
       num_writes++;
@@ -82,11 +82,12 @@ class axi4lite_scoreboard extends uvm_component;
   // compare the read data against the shadow model, report an error if it doesn't match
   protected function void check_read_data(int unsigned word_idx, axi4lite_txn tr);
     bit [axi4lite_pkg::DATA_WIDTH-1:0] expected = shadow_regs.exists(word_idx) ? shadow_regs[word_idx] : '0;
-    if (tr.rdata !== expected)
+    if (tr.rdata !== expected) begin
       num_errors++;
       `uvm_error("SB", $sformatf(
         "READ MISMATCH addr=0x%0h expected=0x%0h actual=0x%0h",
         tr.addr, expected, tr.rdata));
+    end
   endfunction
 
   // check that the response is OKAY (2'b00), report an error if not
@@ -94,7 +95,7 @@ class axi4lite_scoreboard extends uvm_component;
     if (tr.resp != 2'b00) begin
       num_errors++;
       `uvm_error("SB", $sformatf(
-        "in-range %s to addr=0x%0h expected OKAY but got resp=%0b", ctx, tr.addr, tr.resp));
+        "in-range %s to addr=0x%0h expected OKAY but got resp=%b", ctx, tr.addr, tr.resp));
       return 0;
     end
     return 1;
@@ -105,7 +106,7 @@ class axi4lite_scoreboard extends uvm_component;
     if (tr.resp != 2'b10) begin
       num_errors++;
       `uvm_error("SB", $sformatf(
-        "out-of-range %s to addr=0x%0h expected SLVERR but got resp=%0b", ctx, tr.addr, tr.resp));
+        "out-of-range %s to addr=0x%0h expected SLVERR but got resp=%b", ctx, tr.addr, tr.resp));
     end
   endfunction
 

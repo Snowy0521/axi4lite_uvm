@@ -119,13 +119,15 @@ class axi4lite_random_seq extends axi4lite_base_seq;
       axi4lite_txn wr, rd;
 
       wr = axi4lite_txn::type_id::create("wr");
+      wr.c_wstrb_default.constraint_mode(0);
       start_item(wr);
       if (!wr.randomize() with {
         op   == AXI_WRITE;
         addr dist {
-          [0 : (NUM_REGS-1)*STRB_WIDTH]      :/ 90,   // mostly in-range, word-aligned
-          [NUM_REGS*STRB_WIDTH : MAX_ADDR]   :/ 10    // occasionally out-of-range -> SLVERR path
+          [0 : (NUM_REGS-1)*STRB_WIDTH]      :/ 50,   // in-range, word-aligned
+          [NUM_REGS*STRB_WIDTH : MAX_ADDR]   :/ 50    // out-of-range -> SLVERR path
         };
+	wstrb dist {[4'b0000 : 4'b1111]};
       }) `uvm_error("SEQ", "randomize failed in axi4lite_random_seq for write transaction")
       finish_item(wr);
 
