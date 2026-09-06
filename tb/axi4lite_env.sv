@@ -28,6 +28,7 @@ class axi4lite_env extends uvm_env;
     super.connect_phase(phase);
     agent.ap.connect(sb.imp);
     agent.ap.connect(cov_col.analysis_export); // coverage collector is a subscriber, defined default analysis_export. 
+    `uvm_info("ENV", "connect_phase done", UVM_LOW)  
   endfunction
 
 endclass

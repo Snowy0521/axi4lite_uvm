@@ -35,6 +35,7 @@ class axi4lite_agent extends uvm_agent;
     if (get_is_active() == UVM_ACTIVE)
       drv.seq_item_port.connect(sqr.seq_item_export);
     ap.connect(mon.ap);
+    `uvm_info("AGT", "connect_phase done", UVM_LOW)
   endfunction
 
 endclass

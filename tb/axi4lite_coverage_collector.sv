@@ -11,7 +11,6 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
 
     axi4lite_txn tr;
 
-`ifndef VERILATOR
     covergroup cg_axi4lite; 
         option.per_instance = 1; // Each instance of the coverage collector will have its own coverage group
 
@@ -49,25 +48,22 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
         // cross coverage between all coverpoints 
         cx_all: cross cp_op, cp_addr, cp_wdata, cp_wstrb, cp_resp;
     endgroup
-`endif
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
-        `ifndef VERILATOR cg_axi4lite = new(); `endif
+        cg_axi4lite = new(); 
     endfunction
 
     function void write(axi4lite_txn tr);
         this.tr = tr;
-        `ifndef VERILATOR cg_axi4lite.sample(); `endif
+        cg_axi4lite.sample(); 
     endfunction
 
     function void report_phase(uvm_phase phase);
         super.report_phase(phase);
-    `ifndef VERILATOR
         `uvm_info("COVERAGE",
             $sformatf("Coverage for %s: %0.2f%%", get_full_name(), cg_axi4lite.get_coverage()),
             UVM_LOW)
-     `endif
     endfunction
 endclass
 

@@ -30,9 +30,12 @@ class axi4lite_scoreboard extends uvm_component;
 
   // called automatically by the monitor's analysis port on every completed txn
   function void write(axi4lite_txn tr);
+
     int unsigned word_idx = tr.addr >> 2;
     bit          in_range = (word_idx < num_regs);
 
+    `uvm_info("SB", "write() entered", UVM_LOW)
+    
     if (tr.op == AXI_WRITE) begin
       num_writes++;
       handle_write(tr, word_idx, in_range);
@@ -112,7 +115,7 @@ class axi4lite_scoreboard extends uvm_component;
     `uvm_info("SB", $sformatf(
       "SCOREBOARD SUMMARY: writes=%0d reads=%0d errors=%0d",
       num_writes, num_reads, num_errors), UVM_LOW)
-    if (num_errors == 0)
+    if ((num_errors == 0) && (num_writes + num_reads != 0))
       `uvm_info("SB", "*** SCOREBOARD: ALL CHECKS PASSED ***", UVM_LOW)
     else
       `uvm_error("SB", $sformatf("*** SCOREBOARD: %0d CHECK(S) FAILED ***", num_errors))

@@ -22,9 +22,8 @@ class axi4lite_monitor extends uvm_monitor;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    //if (!uvm_config_db#(virtual axi4lite_if.monitor)::get(this, "", "vif", vif))
-    //  `uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
-    vif = axi4lite_pkg::g_mon_vif;
+    if (!uvm_config_db#(virtual axi4lite_if.monitor)::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
   endfunction
 
   task run_phase(uvm_phase phase);
