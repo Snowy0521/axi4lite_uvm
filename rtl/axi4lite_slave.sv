@@ -9,7 +9,14 @@
 //   - WVALID/WDATA and AWVALID/AWADDR are accepted independently and matched
 //   - Out-of-range address on write returns SLVERR and does NOT write
 //   - Out-of-range address on read returns SLVERR (2'b10) with 0 data
-// ============================================================================
+// ===========================================================================
+
+typedef enum logic [1:0] {
+  AXI_RESP_OKAY = 2'b00,
+  AXI_RESP_EXOKAY = 2'b01,
+  AXI_RESP_SLVERR = 2'b10,
+  AXI_RESP_DECERR = 2'b11
+} axi_resp_e;
 
 module axi4lite_slave #(
   parameter int ADDR_WIDTH = 8,     // byte address width exposed on the bus
@@ -47,6 +54,7 @@ module axi4lite_slave #(
   input  logic                    rready
 );
 
+  localparam int ADDR_LSB = $clog2(DATA_WIDTH / 8);
   // -----------------------------------------------------------------------
   // Register file
   // -----------------------------------------------------------------------
@@ -93,15 +101,15 @@ module axi4lite_slave #(
 
       // fire the actual write once both halves have arrived
       if (aw_hs_done && w_hs_done && !bvalid) begin // cycle N+1
-        automatic int unsigned word_idx = awaddr_latched[ADDR_WIDTH-1:2];
+        automatic int unsigned word_idx = awaddr_latched[ADDR_WIDTH-1: ADDR_LSB];
         if (word_idx < NUM_REGS) begin
           for (int b = 0; b < DATA_WIDTH/8; b++) begin
             if (wstrb_latched[b])
               regfile[word_idx][b*8 +: 8] <= wdata_latched[b*8 +: 8];
           end
-          bresp <= 2'b00; // OKAY
+          bresp <= AXI_RESP_OKAY; 
         end else begin
-          bresp <= 2'b10; // SLVERR -- address out of range
+          bresp <= AXI_RESP_SLVERR; 
         end
         bvalid     <= 1'b1;
         aw_hs_done <= 1'b0;
@@ -126,13 +134,13 @@ module axi4lite_slave #(
       rresp  <= 2'b00;
     end else begin
       if (arvalid && arready) begin
-        automatic int unsigned word_idx = araddr[ADDR_WIDTH-1:2];
+        automatic int unsigned word_idx = araddr[ADDR_WIDTH-1 : ADDR_LSB];
         if (word_idx < NUM_REGS) begin
           rdata <= regfile[word_idx];
-          rresp <= 2'b00; // OKAY
+          rresp <= AXI_RESP_OKAY;
         end else begin
           rdata <= '0;
-          rresp <= 2'b10; // SLVERR
+          rresp <= AXI_RESP_SLVERR;
         end
         rvalid <= 1'b1;
       end else if (rvalid && rready) begin
