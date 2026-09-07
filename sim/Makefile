@@ -19,7 +19,7 @@ TB_FILES  := $(TB_DIR)/axi4lite_if.sv \
 
 
 VERILATOR       ?= verilator
-VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc) \
+VERILATOR_FLAGS ?= --binary --timing --trace --coverage -Wno-fatal -j $(shell nproc) \
                    --timescale 1ns/1ps \
                    -Wno-TIMESCALEMOD \
                    -Wno-WIDTHEXPAND \
