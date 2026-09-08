@@ -8,8 +8,11 @@
 
 class axi4lite_driver extends uvm_driver #(axi4lite_txn);
   `uvm_component_utils(axi4lite_driver)
-
-  virtual axi4lite_if.driver vif;
+  
+  virtual axi4lite_if #(
+    .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+  ).driver vif;
 
   function new(string name, uvm_component parent);
     super.new(name, parent);
@@ -17,7 +20,10 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    if (!uvm_config_db#(virtual axi4lite_if.driver)::get(this, "", "vif", vif))
+    if (!uvm_config_db#(virtual axi4lite_if #(
+  	  .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    	  .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+        ).driver)::get(this, "", "vif", vif))
       `uvm_fatal("NOVIF", "virtual interface (driver modport) not found in config_db")
   endfunction
 
@@ -31,7 +37,7 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
     forever begin
       axi4lite_txn tr;
       seq_item_port.get_next_item(tr);
-      `uvm_info("DRV", $sformatf("Got transaction: op=%0d addr=0x%0h data=0x%0h", tr.op, tr.addr, tr.wdata), UVM_HIGH)
+      `uvm_info("DRV", $sformatf("Got transaction: op=%0d addr=0x%0h data=0x%0h", tr.op, tr.addr, tr.wdata), UVM_LOW)
       if (tr.op == AXI_WRITE) drive_write(tr);
       else                    drive_read(tr);
       seq_item_port.item_done();

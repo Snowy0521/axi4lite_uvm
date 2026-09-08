@@ -11,8 +11,12 @@
 
 class axi4lite_monitor extends uvm_monitor;
   `uvm_component_utils(axi4lite_monitor)
+  
+  virtual axi4lite_if #(
+    .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+  ).monitor vif;
 
-  virtual axi4lite_if.monitor vif;
   uvm_analysis_port #(axi4lite_txn) ap;  
 
   function new(string name, uvm_component parent);
@@ -22,8 +26,11 @@ class axi4lite_monitor extends uvm_monitor;
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
-    if (!uvm_config_db#(virtual axi4lite_if.monitor)::get(this, "", "vif", vif))
-      `uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
+    if (!uvm_config_db#(virtual axi4lite_if#(
+   	 .ADDR_WIDTH(axi4lite_pkg::ADDR_WIDTH),
+    	 .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
+       ).monitor)::get(this, "", "vif", vif))
+       	`uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
   endfunction
 
   task run_phase(uvm_phase phase);
@@ -59,7 +66,7 @@ class axi4lite_monitor extends uvm_monitor;
       do @(posedge vif.clk); while (!(vif.bvalid && vif.bready));
       tr.resp = vif.bresp;
 
-      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
+      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_LOW)
       ap.write(tr);
     end
   endtask
@@ -80,7 +87,7 @@ class axi4lite_monitor extends uvm_monitor;
       tr.rdata = vif.rdata;
       tr.resp  = vif.rresp;
 
-      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
+      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_LOW)
       ap.write(tr);
     end
   endtask

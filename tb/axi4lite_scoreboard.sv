@@ -14,7 +14,7 @@ class axi4lite_scoreboard extends uvm_component;
 
   // shadow model of the DUT's register file -- word-addressed
   // chose associative array for large address spaces if NUM_REGS gets big
-  protected bit [DATA_WIDTH-1:0] shadow_regs [int unsigned]; // associative array indexed by word address
+  protected bit [axi4lite_pkg::DATA_WIDTH-1:0] shadow_regs [int unsigned]; // associative array indexed by word address
   protected int unsigned num_regs, num_writes, num_reads, num_errors;
 
   function new(string name, uvm_component parent);
@@ -31,7 +31,7 @@ class axi4lite_scoreboard extends uvm_component;
   // called automatically by the monitor's analysis port on every completed txn
   function void write(axi4lite_txn tr);
 
-    int unsigned word_idx = tr.addr >> 2;
+    int unsigned word_idx = tr.addr >> axi4lite_pkg::ADDR_LSB;
     bit          in_range = (word_idx < num_regs);
 
     `uvm_info("SB", "write() entered", UVM_HIGH)

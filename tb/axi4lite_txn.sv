@@ -21,18 +21,18 @@ class axi4lite_txn extends uvm_sequence_item;
   // Constraints
   // --------------------------------------------------------------------
   constraint c_addr_align {
-    addr % 4 == 0;               // AXI4-Lite is always 32-bit aligned in this env
+    addr % axi4lite_pkg::STRB_WIDTH == 0;               // AXI4-Lite is 32-bit or 64-bit aligned in this env
   }
 
   constraint c_wstrb_default {
-    soft wstrb == 4'b1111;        // default to a full-word write unless overridden
+    soft wstrb == '1;        // default to a full-word write unless overridden
   }
 
   // --------------------------------------------------------------------
   // Factory registration and field automation  
   // --------------------------------------------------------------------
   `uvm_object_utils_begin(axi4lite_txn)
-    `uvm_field_enum(axi4lite_op_e, op,   UVM_ALL_ON) // UVM_ALL_ON means this field can be copied, compared, printed, and packed/unpacked
+    `uvm_field_enum(axi4lite_op_e, op,    UVM_ALL_ON) // UVM_ALL_ON means this field can be copied, compared, printed, and packed/unpacked
     `uvm_field_int  (addr,                UVM_ALL_ON) 
     `uvm_field_int  (wdata,               UVM_ALL_ON)
     `uvm_field_int  (wstrb,               UVM_ALL_ON)

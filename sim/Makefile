@@ -1,8 +1,8 @@
 # ============================================================================
-# Makefile -- run targets for common commercial simulators.
+# Makefile -- run targets for verilator simulator
 # Adjust UVM_HOME / tool invocation flags to match your local install.
 # TEST defaults to the smoke test; override on the command line, e.g.:
-#   make questa TEST=axi4lite_random_test
+#   make verilator TEST=axi4lite_random_test
 # ============================================================================
 
 TEST      ?= axi4lite_smoke_test
@@ -17,38 +17,15 @@ TB_FILES  := $(TB_DIR)/axi4lite_if.sv \
              $(TB_DIR)/axi4lite_pkg.sv \
              $(TB_DIR)/tb_top.sv
 
-# --------------------------------------------------------------------------
-# Questa/ModelSim
-# --------------------------------------------------------------------------
-questa:
-	vlib work
-	vlog -sv +incdir+$(UVM_HOME) $(UVM_HOME)/uvm_pkg.sv \
-	     $(RTL_FILES) $(TB_FILES)
-	vsim -c -sv_seed $(SEED) +UVM_TESTNAME=$(TEST) tb_top -do "run -all; quit"
 
-# --------------------------------------------------------------------------
-# Synopsys VCS
-# --------------------------------------------------------------------------
-vcs:
-	vcs -sverilog -ntb_opts uvm -full64 \
-	    $(RTL_FILES) $(TB_FILES) -o simv
-	./simv +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED)
-
-# --------------------------------------------------------------------------
-# Cadence Xcelium
-# --------------------------------------------------------------------------
-xrun:
-	xrun -uvm -sv \
-	     $(RTL_FILES) $(TB_FILES) \
-	     +UVM_TESTNAME=$(TEST) -svseed $(SEED)
-
-
-# --------------------------------------------------------------------------
-# Verilator
-# --------------------------------------------------------------------------
 VERILATOR       ?= verilator
-VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc)
-UVM_VERBOSITY   ?= UVM_HIGH
+VERILATOR_FLAGS ?= --binary --timing --trace -Wno-fatal -j $(shell nproc) \
+                   --timescale 1ns/1ps \
+                   -Wno-TIMESCALEMOD \
+                   -Wno-WIDTHEXPAND \
+                   -Wno-WIDTHTRUNC
+
+UVM_VERBOSITY   ?= UVM_LOW
 verilator:
 	$(VERILATOR) $(VERILATOR_FLAGS) -sv --top-module tb_top \
 	     +incdir+$(UVM_HOME) +define+UVM_NO_DPI \
@@ -58,5 +35,25 @@ verilator:
 	     -o sim_$(TEST)
 	./obj_dir/sim_$(TEST) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED) +UVM_VERBOSITY=$(UVM_VERBOSITY)
 
+
+
+
+# ============================================================================
+# Plain (non-UVM) simple test — tb_simple.sv drives axi4lite_slave directly,
+# no UVM agent/package involved. Use this to sanity-check the DUT in
+# isolation before/instead of debugging through the full UVM environment.
+# ============================================================================
+SIMPLE_FILES := $(RTL_FILES) $(TB_DIR)/tb_simple.sv
+
+
+verilator_simple:
+	$(VERILATOR) --binary --timing --trace -Wno-fatal -j $(shell nproc) \
+	     -sv --top-module tb_simple \
+	     --Mdir obj_dir_simple \
+	     +incdir+$(TB_DIR) +incdir+$(RTL_DIR) \
+	     $(SIMPLE_FILES) \
+	     -o sim_simple
+	./obj_dir_simple/sim_simple
+
 clean:
-	rm -rf obj_dir *.vcd
+	rm -rf obj_dir obj_dir_simple *.vcd

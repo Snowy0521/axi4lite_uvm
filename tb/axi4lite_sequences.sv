@@ -74,7 +74,8 @@ class axi4lite_read_seq extends axi4lite_base_seq;
 endclass
 
 // --------------------------------------------------------------------------
-// Smoke sequence - wraps the 4 directed writes and 4 directed reads from axi4lite_smoke_test
+// Smoke sequence - wraps the number of NUM_SMOKE_TXNS directed writes and then 
+// same times directed reads from axi4lite_smoke_test
 // --------------------------------------------------------------------------
 class axi4lite_smoke_seq extends axi4lite_base_seq;
   `uvm_object_utils(axi4lite_smoke_seq)
@@ -89,14 +90,15 @@ class axi4lite_smoke_seq extends axi4lite_base_seq;
 
     for (int i = 0; i < axi4lite_pkg::NUM_SMOKE_TXNS; i++) begin
       wr = axi4lite_write_seq::type_id::create($sformatf("wr%0d", i));
-      wr.addr  = i * 4;
-      wr.wdata = 32'hA000_0000 + i;
+      wr.addr  = i * REG_STRIDE;
+      wr.wdata = {(axi4lite_pkg::DATA_WIDTH/32){32'hA000_0000 + i}};
+      wr.wstrb = '1;
       wr.start(m_sequencer, this);
     end
 
     for (int i = 0; i < axi4lite_pkg::NUM_SMOKE_TXNS; i++) begin
       rd = axi4lite_read_seq::type_id::create($sformatf("rd%0d", i));
-      rd.addr = i * 4;
+      rd.addr = i * REG_STRIDE;
       rd.start(m_sequencer, this);
     end
   endtask
@@ -127,7 +129,7 @@ class axi4lite_random_seq extends axi4lite_base_seq;
           [0 : (NUM_REGS-1)*STRB_WIDTH]      :/ 50,   // in-range, word-aligned
           [NUM_REGS*STRB_WIDTH : MAX_ADDR]   :/ 50    // out-of-range -> SLVERR path
         };
-	wstrb dist {[4'b0000 : 4'b1111]};
+	wstrb dist {['0 : '1]};
       }) `uvm_error("SEQ", "randomize failed in axi4lite_random_seq for write transaction")
       finish_item(wr);
 
