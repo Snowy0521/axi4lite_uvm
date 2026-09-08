@@ -66,7 +66,7 @@ class axi4lite_monitor extends uvm_monitor;
       do @(posedge vif.clk); while (!(vif.bvalid && vif.bready));
       tr.resp = vif.bresp;
 
-      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
+      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_LOW)
       ap.write(tr);
     end
   endtask
@@ -87,7 +87,7 @@ class axi4lite_monitor extends uvm_monitor;
       tr.rdata = vif.rdata;
       tr.resp  = vif.rresp;
 
-      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_HIGH)
+      `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_LOW)
       ap.write(tr);
     end
   endtask

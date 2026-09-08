@@ -92,6 +92,7 @@ class axi4lite_smoke_seq extends axi4lite_base_seq;
       wr = axi4lite_write_seq::type_id::create($sformatf("wr%0d", i));
       wr.addr  = i * REG_STRIDE;
       wr.wdata = {(axi4lite_pkg::DATA_WIDTH/32){32'hA000_0000 + i}};
+      wr.wstrb = '1;
       wr.start(m_sequencer, this);
     end
 

@@ -8,8 +8,8 @@
 package axi4lite_pkg;
 
   parameter int unsigned ADDR_WIDTH     = 8;
-  //parameter int unsigned DATA_WIDTH     = 32;
-  parameter int unsigned DATA_WIDTH     = 64;
+  parameter int unsigned DATA_WIDTH     = 32;
+  //parameter int unsigned DATA_WIDTH     = 64;
   parameter int unsigned NUM_REGS       = 16;
   parameter int unsigned STRB_WIDTH     = DATA_WIDTH/8;
   parameter int unsigned REG_STRIDE     = STRB_WIDTH;

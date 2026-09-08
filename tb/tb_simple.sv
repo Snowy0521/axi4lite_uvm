@@ -18,8 +18,8 @@
 module tb_simple;
 
   localparam int ADDR_WIDTH = 8;
-  //localparam int DATA_WIDTH = 32;
-  localparam int DATA_WIDTH = 64;
+  localparam int DATA_WIDTH = 32;
+  //localparam int DATA_WIDTH = 64;
   localparam int NUM_REGS   = 16; 
   localparam int ADDR_LSB = $clog2(DATA_WIDTH / 8);
   localparam int REG_STRIDE = DATA_WIDTH / 8; 
