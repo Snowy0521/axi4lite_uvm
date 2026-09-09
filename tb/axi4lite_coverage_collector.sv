@@ -51,8 +51,8 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
 
 	// not supported by verilator 
         //cx_addr_resp:   cross cp_addr, cp_resp {
-	//	ignore_bins invalid_out_of_range_ok = binsof(cp_addr.out_of_range) && binsof(cp_resp.ok);
-	//	ignore_bins invalid_in_range_err = binsof(cp_addr.in_range) && binsof(cp_resp.slverr);
+	//	illegal_bins invalid_out_of_range_ok = binsof(cp_addr.out_of_range) && binsof(cp_resp.ok);
+	//	illegal_bins invalid_in_range_err = binsof(cp_addr.in_range) && binsof(cp_resp.slverr);
 	//}
 	
         // alternative

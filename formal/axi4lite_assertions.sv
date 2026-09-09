@@ -55,7 +55,7 @@ module axi4lite_assertions #(
   endfunction
 
   // ===============================================================
-  // A01: VALID signals must be LOW during reset.
+  // Rule_01: VALID signals must be LOW during reset.
   //
   // Slave-driven channels (B, R) only
   // Master-driven channels (AW, W, AR) in axi4lite_assumptions.sv
@@ -68,7 +68,7 @@ module axi4lite_assertions #(
   	else $error("RVALID not held low during reset")
 
   // ===============================================================
-  // A02: Once VALID is asserted, it must remain asserted, 
+  // Rule_02: Once VALID is asserted, it must remain asserted, 
   // and the accompanying payload (address/data/control) must remain stable, 
   // until the rising clock edge after READY is seen HIGH. (next cycle)
   //
@@ -79,11 +79,11 @@ module axi4lite_assertions #(
   a_bvalid_stable: assert property (bvalid && !bready |=> bvalid && $stable(bresp))
   	else $error("BVALID/BRESP deasserted or changed before BREADY");
 
-  a_rvalid_stable: assert property (rvalid && !rready |=> !rvalid && $stable(rdata) && $stable(rresp))
+  a_rvalid_stable: assert property (rvalid && !rready |=> rvalid && $stable(rdata) && $stable(rresp))
   	else $error("RVALID/RDATA/RRESP deasserted or changed before BREADY");
 
   // ===============================================================
-  // A03: AW and W handshakes must be completed before asserting BVALID 
+  // Rule_03: AW and W handshakes must be completed before asserting BVALID 
   // ===============================================================
   property p_bvalid_after_aw_and_w;
 	  $rose(bvalid) |-> 
