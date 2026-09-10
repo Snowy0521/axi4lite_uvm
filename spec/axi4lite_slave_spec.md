@@ -63,32 +63,40 @@ Table B1-1 of IHI0022E defines the required AXI4-Lite interface signal set:
 
 ## 4. Channel Handshake Rules
 
-These are the general Valid/Ready rules that apply to *every* channel (`AW`, `W`, `B`, `AR`, `R`) and that the environment driving/monitoring this slave must respect:
+### 4.1 General rules
 
-- VALID signals must be LOW during reset. (Rule_01, axi4lite_assertion.sv)
-- Once VALID is asserted, it must remain asserted, and the accompanying payload (address/data/control) must remain stable, until the rising clock edge after READY is seen HIGH. (Rule_02, axi4lite_assertion.sv)
-- 
-- Transfer occurs only on a clock edge where VALID and READY are both HIGH on that channel.
-- The transmitter must not wait for READY before asserting VALID. (avoid deadlock)
-- The receiver may assert READY either before or after VALID. 
+The general Valid/Ready rules that apply to *every* channel (`AW`, `W`, `B`, `AR`, `R`), on both the master and the slave side:
 
+- VALID signals must be LOW during reset. *(slave-driven channels B/R: `axi4lite_assertions.sv`; master-driven channels AW/W/AR: `axi4lite_assumptions.sv`)*
+- Once VALID is asserted, it must remain asserted, and the accompanying payload (address/data/control) must remain stable, until the rising clock edge after READY is seen HIGH. *(slave-driven channels B/R: `axi4lite_assertions.sv`; master-driven channels AW/W/AR: `axi4lite_assumptions.sv`)*
+- Transfer occurs only on a clock edge where VALID and READY are both HIGH on that channel. *(a definition, not a constraint, no property)*
+- The transmitter must not wait for READY before asserting VALID (avoid deadlock). *(a permission, not a constraint, no property)*
+- The receiver may assert READY either before or after VALID. *(a permission, not a constraint, no property)*
 
+### 4.2 Specific rules for `AW`, `W`, `B`
 
-### 4.1 Write channel
+#### Slave side
+- The slave must wait for `AWVALID`, `AWREADY`, `WVALID`, and `WREADY` to all have been asserted (AW and W handshakes both complete) before asserting `BVALID`. *(`axi4lite_assertions.sv`)*
+- The slave must not wait for `BREADY` before asserting `BVALID`. *(`axi4lite_assertions.sv`)*
+- Whenever the slave asserts `BVALID`, `BRESP` must be either `OKAY` or `SLVERR`. *(`axi4lite_assertions.sv`)*
 
-- The slave must wait for `AWVALID`, `AWREADY`, `WVALID`, and `WREADY` to all have been asserted (AW and W handshakes both complete) before asserting `BVALID`. (Rule_03, axi4lite_assertion.sv)
-  
-- The slave must not wait for `BREADY` before asserting `BVALID`; the master may assert `BREADY` before or after `BVALID`.
-- The master asserts `AWVALID` only when it drives valid address and control information; `AWREADY` (slave) defaults to HIGH by recommendation.
-- The master asserts `WVALID` only when it drives valid write data; `WREADY` (slave) defaults to HIGH by recommendation.
-- `AWVALID`/`WVALID` may arrive in either order or simultaneously.
+#### Master side
+- The master asserts `AWVALID` only when it drives valid address and control information; `AWREADY` (slave) defaults to HIGH by recommendation. *(descriptive, not independently checkable — no property)*
+- The master asserts `WVALID` only when it drives valid write data; `WREADY` (slave) defaults to HIGH by recommendation. *(descriptive, not independently checkable — no property)*
+- `AWVALID`/`WVALID` may arrive in either order or simultaneously. *(a permission — no property; covered by `cp_aw_before_w`/`cp_w_before_aw`/`cp_aw_w_same_cycle` in `axi4lite_assertions.sv` and `cp_aw_before_w_master`/`cp_w_before_aw_master` in `axi4lite_assumptions.sv`)*
+- The master may assert `BREADY` before or after `BVALID`. *(a permission — no property; covered by `cp_bready_preasserted`/`cp_bready_after_valid` in `axi4lite_assumptions.sv`)*
 
-### 4.2 Read channel
+### 4.3 Specific rules for `AR`, `R`
 
-- The master asserts `ARVALID` only when it drives valid address and control information; `ARREADY` (slave) defaults to HIGH by recommendation.
-- The slave must wait for both `ARVALID` and `ARREADY` to be asserted before asserting `RVALID`.
-- The slave asserts `RVALID` only when it drives valid read data.
-- The slave must not wait for `RREADY` before asserting `RVALID`; the master may assert `RREADY` before or after `RVALID`.
+#### Slave side
+- The slave must wait for both `ARVALID` and `ARREADY` to be asserted before asserting `RVALID`. *(`axi4lite_assertions.sv`)*
+- The slave must not wait for `RREADY` before asserting `RVALID`. *(Rule_06, `axi4lite_assertions.sv` — implemented as a direct, tight implication rather than a bounded-latency proxy, so it's strictly stronger than the write side's equivalent)*
+- The slave asserts `RVALID` only when it drives valid read data. *(Rule_07, `axi4lite_assertions.sv` — "valid" reduces to: not X/Z, plus content-correctness already checked by the response-code assertions)*
+
+#### Master side
+- The master asserts `ARVALID` only when it drives valid address and control information; `ARREADY` (slave) defaults to HIGH by recommendation. *(descriptive, not independently checkable — no property)*
+- The master may assert `RREADY` before or after `RVALID`. *(Rule 3 permission — no property; covered by `cp_rready_preasserted`/`cp_rready_after_valid` in `axi4lite_assumptions.sv`)*
+
 
 
 ---
