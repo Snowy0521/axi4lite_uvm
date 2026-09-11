@@ -52,11 +52,11 @@ module axi4lite_assertions #(
   endfunction
 
   
-  // One-shot check at elaboration time, not a formal property. 
+  // One-shot check at elaboration time, not a formal property.
   initial begin
     assert (DATA_WIDTH == 32 || DATA_WIDTH == 64) // AXI4-Lite data bus width must be 32 or 64 bits.
       else $fatal(1, "axi4lite_assertions: DATA_WIDTH=%0d is not legal, (32 or 64 are desired)", DATA_WIDTH);
-  end 
+  end
 
   // Module-level default clocking and reset for all properties below. 
   default clocking cb @(posedge clk); endclocking
@@ -103,15 +103,47 @@ module axi4lite_assertions #(
   // ****************************************************************************
   // *********** 4.2 Specific rules for AW / W / B -- slave side **************** 
   // ****************************************************************************
+  // aw_seen_q/w_seen_q track "a currently-pending AW+W pair has been
+  // latched", for the property below. Two wrong ways to clear them, and
+  // why this settles on a third:
+  //
+  //   - Clearing on BVALID&&BREADY (response *accepted*): wrong, because
+  //     the DUT re-opens AWREADY/WREADY the same cycle it raises BVALID
+  //     (see axi4lite_slave.sv), so it can latch a THIRD AW+W pair while
+  //     a SECOND transaction's response is still outstanding waiting for
+  //     BREADY. That third pair's aw_hs_done/w_hs_done stay 1 throughout
+  //     -- but a BVALID&&BREADY clear here, keyed to the unrelated
+  //     second transaction finally being accepted, would wipe
+  //     aw_seen_q/w_seen_q out from under it, producing a false failure
+  //     when it later fires for real.
+  //   - Clearing the same cycle BVALID rises (an exact mirror of the
+  //     DUT's own aw_hs_done/w_hs_done, which clear in that same cycle):
+  //     also wrong, but more subtly -- it makes the property below
+  //     unsatisfiable by construction. `$rose(bvalid) |-> aw_seen_q &&
+  //     w_seen_q` samples both sides at the same sampled cycle, so a
+  //     same-cycle clear means aw_seen_q/w_seen_q always read 0 exactly
+  //     when $rose(bvalid) is true, on every single fire.
+  //
+  // The fix: clear one cycle *after* the fire (bvalid_q lags bvalid by
+  // one register), so aw_seen_q/w_seen_q are still 1 for the property to
+  // observe during the rise itself, and only clear once that specific
+  // pair has actually been consumed -- independent of whichever earlier
+  // transaction's response happens to get accepted around the same time.
+  logic bvalid_q;
+  always_ff @(posedge clk or negedge rst_n)
+    if (!rst_n) bvalid_q <= 1'b0;
+    else        bvalid_q <= bvalid;
+
   logic aw_seen_q, w_seen_q;
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       aw_seen_q <= 1'b0;
       w_seen_q  <= 1'b0;
-    end else if (bvalid && bready) begin
-      aw_seen_q <= 1'b0;
-      w_seen_q  <= 1'b0;
     end else begin
+      if (bvalid && !bvalid_q) begin
+        aw_seen_q <= 1'b0;
+        w_seen_q  <= 1'b0;
+      end
       if (awvalid && awready) aw_seen_q <= 1'b1;
       if (wvalid  && wready)  w_seen_q  <= 1'b1;
     end

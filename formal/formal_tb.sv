@@ -72,6 +72,17 @@ module formal_tb;
   end
 
   // ------------------------------------------------------------------
+  // Simulation-only run length. A true formal tool never reaches an
+  // `initial` block like this one during property solving; it only
+  // matters for flow #2.
+  // ------------------------------------------------------------------
+  initial begin
+    #100000;   // ~10,000 clock cycles at the 10ns period above
+    $display("[formal_tb] Reached simulation time limit, stopping.");
+    $finish;
+  end
+
+  // ------------------------------------------------------------------
   // DUT instantiation
   // ------------------------------------------------------------------
   axi4lite_slave #(
@@ -79,6 +90,16 @@ module formal_tb;
     .DATA_WIDTH (DATA_WIDTH),
     .NUM_REGS   (NUM_REGS)
   ) dut (.*);
+
+  // ------------------------------------------------------------------
+  // Legal-master stimulus (flow #2 only) -- see
+  // axi4lite_formal_driver.sv's header for why this is needed at all.
+  // ------------------------------------------------------------------
+  axi4lite_formal_driver #(
+    .ADDR_WIDTH (ADDR_WIDTH),
+    .DATA_WIDTH (DATA_WIDTH),
+    .NUM_REGS   (NUM_REGS)
+  ) u_driver (.*);
 
   // ------------------------------------------------------------------
   // Environment constraints 
