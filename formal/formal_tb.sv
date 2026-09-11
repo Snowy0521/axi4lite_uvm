@@ -11,17 +11,14 @@
 // Written to work two ways:
 //   1. True formal tool (JasperGold, VC Formal, Questa Formal, ...): the
 //      tool drives clk/reset itself via its own `clock`/`reset` commands
-//      and treats every input as a free variable constrained only by the
-//      `assume property` statements in axi4lite_assumptions.sv. In that
+//      and treats every input as a free variable constrained. In that
 //      flow, comment out the `always #5 clk = ~clk;` generator and the
 //      `initial` reset block below -- the tool supplies both.
 //   2. Bounded/simulation-based assertion checking (e.g. Verilator with
 //      SVA support, or any simulator run as a smoke check before a real
 //      formal tool is available): leave the generator and reset block
 //      active, and this becomes a self-contained, randomly-driven
-//      testbench that still exercises every assume/assert pair -- useful
-//      for a first-pass sanity check of the properties themselves before
-//      handing them to a formal tool.
+//      testbench that still exercises every assume/assert pair.
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -75,19 +72,6 @@ module formal_tb;
   end
 
   // ------------------------------------------------------------------
-  // Every input the environment is responsible for is left as a free
-  // variable: no procedural driving here at all beyond clk/rst_n above.
-  // axi4lite_assumptions.sv is what constrains their legal values --
-  // that's the whole point of a formal environment. (For flow #2 above,
-  // a formal-aware simulator/tool still needs *some* mechanism to
-  // randomize these each cycle subject to the assumptions; a true
-  // formal tool does this natively. If you only have a plain simulator
-  // without formal support, this file alone won't self-stimulate --
-  // pair it with a lightweight `always @(posedge clk) randomize(...)`
-  // driver, or just target a real formal tool.)
-  // ------------------------------------------------------------------
-
-  // ------------------------------------------------------------------
   // DUT instantiation
   // ------------------------------------------------------------------
   axi4lite_slave #(
@@ -97,7 +81,7 @@ module formal_tb;
   ) dut (.*);
 
   // ------------------------------------------------------------------
-  // Environment constraints (master obligations)
+  // Environment constraints 
   // ------------------------------------------------------------------
   axi4lite_assumptions #(
     .ADDR_WIDTH (ADDR_WIDTH),
@@ -112,12 +96,10 @@ module formal_tb;
     .wstrb   (wstrb),
     .wvalid  (wvalid),
     .wready  (wready),
-    .bvalid  (bvalid),
     .bready  (bready),
     .araddr  (araddr),
     .arvalid (arvalid),
     .arready (arready),
-    .rvalid  (rvalid),
     .rready  (rready)
   );
 
@@ -152,13 +134,11 @@ module formal_tb;
   );
 
   // ------------------------------------------------------------------
-  // Reachability coverage for spec rules 1 and 3, which have no
-  // assert/assume of their own (see axi4lite_assumptions.sv's §4.1
-  // note for why) -- confirms the proof actually reaches these
+  // Reachability coverage for spec rules, which have no
+  // assert/assume of their own, confirming the proof actually reaches these
   // scenarios rather than vacuously passing.
   // ------------------------------------------------------------------
   axi4lite_covers #(
-    .ADDR_WIDTH (ADDR_WIDTH),
     .DATA_WIDTH (DATA_WIDTH)
   ) u_covers (
     .clk     (clk),

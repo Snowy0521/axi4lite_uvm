@@ -4,7 +4,6 @@
 // All `cover property` points for axi4lite_slave's formal environment.
 // ============================================================================
 module axi4lite_covers #(
-  parameter int ADDR_WIDTH = 8,
   parameter int DATA_WIDTH = 32
 )(
   input logic                    clk,

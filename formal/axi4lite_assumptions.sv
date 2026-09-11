@@ -19,14 +19,12 @@ module axi4lite_assumptions #(
   input logic                    wvalid,
   input logic                    wready,
 
-  input logic                    bvalid,
   input logic                    bready,
 
   input logic [ADDR_WIDTH-1:0]   araddr,
   input logic                    arvalid,
   input logic                    arready,
 
-  input logic                    rvalid,
   input logic                    rready
 );
 
