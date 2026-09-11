@@ -2,7 +2,13 @@
 # Makefile -- run targets for verilator simulator
 # Adjust UVM_HOME / tool invocation flags to match your local install.
 # TEST defaults to the smoke test; override on the command line, e.g.:
-#   make verilator TEST=axi4lite_random_test
+#   make uvm TEST=axi4lite_random_test
+#
+# `uvm-sweep` builds TEST once and runs seeds 1..N (default 20)
+# against it, reporting which (if any) failed by parsing each run's UVM
+# report summary (UVM_ERROR/UVM_FATAL counts) -- much cheaper than N full
+# rebuilds:
+#   make uvm-sweep TEST=axi4lite_random_test N=50
 #
 # `formal` runs the ../formal/ assume/assert/cover environment (flow #2 in
 # formal_tb.sv's header comment) -- bounded, randomly-driven simulation, not
@@ -35,14 +41,41 @@ VERILATOR_FLAGS ?= --binary --timing --trace --coverage -Wno-fatal -j $(shell np
                    -Wno-WIDTHTRUNC
 
 UVM_VERBOSITY   ?= UVM_LOW
-verilator:
+UVM_BIN         := obj_dir/sim_$(TEST)
+
+uvm-build:
 	$(VERILATOR) $(VERILATOR_FLAGS) -sv --top-module tb_top \
 	     +incdir+$(UVM_HOME) +define+UVM_NO_DPI \
 	     +incdir+$(TB_DIR) +incdir+$(RTL_DIR) \
 	     $(UVM_HOME)/uvm_pkg.sv \
 	     $(RTL_FILES) $(TB_FILES) \
 	     -o sim_$(TEST)
-	./obj_dir/sim_$(TEST) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED) +UVM_VERBOSITY=$(UVM_VERBOSITY)
+
+uvm: uvm-build
+	./$(UVM_BIN) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$(SEED) +UVM_VERBOSITY=$(UVM_VERBOSITY)
+
+uvm-sweep: uvm-build
+	@fail=0; \
+	for s in $$(seq 1 $(N)); do \
+	  out=$$(./$(UVM_BIN) +UVM_TESTNAME=$(TEST) +ntb_random_seed=$$s +UVM_VERBOSITY=$(UVM_VERBOSITY) 2>&1); \
+	  errs=$$(echo "$$out" | sed -n 's/^UVM_ERROR :[ \t]*\([0-9][0-9]*\).*/\1/p' | tail -1); \
+	  fatals=$$(echo "$$out" | sed -n 's/^UVM_FATAL :[ \t]*\([0-9][0-9]*\).*/\1/p' | tail -1); \
+	  if [ -z "$$errs" ] || [ -z "$$fatals" ]; then \
+	    echo "seed $$s: FAILED (no UVM report summary found -- crashed or hung?)"; \
+	    fail=1; \
+	  elif [ "$$errs" -gt 0 ] || [ "$$fatals" -gt 0 ]; then \
+	    echo "seed $$s: FAILED (UVM_ERROR=$$errs UVM_FATAL=$$fatals)"; \
+	    fail=1; \
+	  else \
+	    echo "seed $$s: OK"; \
+	  fi; \
+	done; \
+	if [ "$$fail" -eq 0 ]; then \
+	  echo "ALL $(N) SEEDS PASSED (TEST=$(TEST))"; \
+	else \
+	  echo "SOME SEEDS FAILED (TEST=$(TEST))"; \
+	  exit 1; \
+	fi
 
 
 
@@ -114,7 +147,7 @@ formal-sweep: formal-build
 	  exit 1; \
 	fi
 
-.PHONY: verilator verilator_simple formal formal-build formal-sweep clean
+.PHONY: uvm uvm-build uvm-sweep verilator_simple formal formal-build formal-sweep clean
 
 clean:
 	rm -rf obj_dir obj_dir_simple obj_dir_formal *.vcd
