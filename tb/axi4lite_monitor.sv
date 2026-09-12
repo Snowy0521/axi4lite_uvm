@@ -44,7 +44,16 @@ class axi4lite_monitor extends uvm_monitor;
   // Reconstruct a write transaction: wait for AW and W handshakes
   // (independently, since they can complete in either order), then wait
   // for the B response, then publish the completed transaction.
-  // monitor is passive, so we don't need to put any timeouts watchdogs here.
+  //
+  // The monitor is passive, so it must never give up waiting -- there's
+  // no failed transaction to report, nowhere to abandon *to*. So unlike
+  // the driver's timeouts (one-shot, fires an error, then bails), each
+  // wait below pairs with a *repeating* stall watchdog: same
+  // fork/join_any/disable-fork idiom, but the "timeout" branch just logs
+  // a non-fatal warning every TIMEOUT_CYCLES and loops -- purely a
+  // debuggability aid (see the class header comment) for "the monitor
+  // has been silently waiting a suspiciously long time," not a
+  // correctness mechanism.
   // ------------------------------------------------------------------
   task monitor_write();
     forever begin
@@ -52,18 +61,51 @@ class axi4lite_monitor extends uvm_monitor;
       tr.op = AXI_WRITE;
 
       fork
-        begin : do_aw 
-          do @(posedge vif.clk); while (!(vif.awvalid && vif.awready));
+        begin : do_aw
+          fork
+            begin : wait_aw
+              do @(posedge vif.clk); while (!(vif.awvalid && vif.awready));
+            end
+            begin : aw_stall_watch
+              forever begin
+                repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
+                `uvm_warning("MON_STALL", "monitor_write: still waiting for AW handshake")
+              end
+            end
+          join_any
+          disable fork;
           tr.addr = vif.awaddr;
         end
         begin : do_w
-          do @(posedge vif.clk); while (!(vif.wvalid && vif.wready));
+          fork
+            begin : wait_w
+              do @(posedge vif.clk); while (!(vif.wvalid && vif.wready));
+            end
+            begin : w_stall_watch
+              forever begin
+                repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
+                `uvm_warning("MON_STALL", "monitor_write: still waiting for W handshake")
+              end
+            end
+          join_any
+          disable fork;
           tr.wdata = vif.wdata;
           tr.wstrb = vif.wstrb;
         end
       join
 
-      do @(posedge vif.clk); while (!(vif.bvalid && vif.bready));
+      fork
+        begin : wait_b
+          do @(posedge vif.clk); while (!(vif.bvalid && vif.bready));
+        end
+        begin : b_stall_watch
+          forever begin
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
+            `uvm_warning("MON_STALL", "monitor_write: still waiting for BVALID")
+          end
+        end
+      join_any
+      disable fork;
       tr.resp = vif.bresp;
 
       `uvm_info("MON", $sformatf("observed %s", tr.convert2string()), UVM_LOW)
@@ -73,17 +115,39 @@ class axi4lite_monitor extends uvm_monitor;
 
   // ------------------------------------------------------------------
   // Reconstruct a read transaction: wait for the AR handshake, then wait
-  // for RVALID, then publish.
+  // for RVALID, then publish. Same stall-watchdog reasoning as above.
   // ------------------------------------------------------------------
   task monitor_read();
     forever begin
       axi4lite_txn tr = axi4lite_txn::type_id::create("tr");
       tr.op = AXI_READ;
 
-      do @(posedge vif.clk); while (!(vif.arvalid && vif.arready));
+      fork
+        begin : wait_ar
+          do @(posedge vif.clk); while (!(vif.arvalid && vif.arready));
+        end
+        begin : ar_stall_watch
+          forever begin
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
+            `uvm_warning("MON_STALL", "monitor_read: still waiting for AR handshake")
+          end
+        end
+      join_any
+      disable fork;
       tr.addr = vif.araddr;
 
-      do @(posedge vif.clk); while (!(vif.rvalid && vif.rready));
+      fork
+        begin : wait_r
+          do @(posedge vif.clk); while (!(vif.rvalid && vif.rready));
+        end
+        begin : r_stall_watch
+          forever begin
+            repeat (axi4lite_pkg::TIMEOUT_CYCLES) @(posedge vif.clk);
+            `uvm_warning("MON_STALL", "monitor_read: still waiting for RVALID")
+          end
+        end
+      join_any
+      disable fork;
       tr.rdata = vif.rdata;
       tr.resp  = vif.rresp;
 
