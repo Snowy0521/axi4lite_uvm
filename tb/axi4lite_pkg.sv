@@ -12,7 +12,6 @@ package axi4lite_pkg;
   //parameter int unsigned DATA_WIDTH     = 64;
   parameter int unsigned NUM_REGS       = 16;
   parameter int unsigned STRB_WIDTH     = DATA_WIDTH/8;
-  parameter int unsigned REG_STRIDE     = STRB_WIDTH;
   parameter int unsigned ADDR_LSB       = $clog2(STRB_WIDTH);
   parameter int unsigned NUM_TXNS       = 100;   // number of transactions in the random traffic generator
   parameter int unsigned MAX_ADDR       = 2**ADDR_WIDTH-1;
