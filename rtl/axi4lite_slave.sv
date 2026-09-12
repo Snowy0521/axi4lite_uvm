@@ -90,9 +90,15 @@ module axi4lite_slave #(
       wdata_latched  <= '0;
       wstrb_latched  <= '0;
 
-      // part of the output signals 
+      // part of the output signals
       bvalid         <= 1'b0;
       bresp          <= 2'b00;
+
+      // Register file: explicit reset removes reliance on
+      // simulator-specific uninitialized-memory behavior (2-state tools
+      // read 0, 4-state tools read X) -- deterministic, portable value
+      // for a read of any never-written register, on every simulator.
+      regfile        <= '{default: '0};
     end else begin
       // latch AW
       if (awvalid && awready) begin // cycle N
