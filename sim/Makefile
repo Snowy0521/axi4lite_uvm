@@ -18,6 +18,10 @@
 # `formal-sweep` builds once and runs seeds 1..N (default 20) against it,
 # reporting which (if any) failed -- much cheaper than N full rebuilds:
 #   make formal-sweep N=50
+# `formal-coverage` builds once, runs seeds 1..N, merges each run's
+# cover-point hit data, and reports which of axi4lite_covers.sv's cp_*
+# points were (or weren't) ever reached across the whole sweep:
+#   make formal-coverage N=50
 # ============================================================================
 
 TEST      ?= axi4lite_smoke_test
@@ -115,7 +119,7 @@ FORMAL_FILES := $(FORMAL_DIR)/axi4lite_assumptions.sv \
 FORMAL_BIN := obj_dir_formal/sim_formal
 
 formal-build:
-	$(VERILATOR) --binary --timing --assert --trace -Wno-fatal -j $(shell nproc) \
+	$(VERILATOR) --binary --timing --assert --coverage --trace -Wno-fatal -j $(shell nproc) \
 	     --timescale 1ns/1ps \
 	     -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC \
 	     -sv --top-module formal_tb \
@@ -147,7 +151,21 @@ formal-sweep: formal-build
 	  exit 1; \
 	fi
 
-.PHONY: uvm uvm-build uvm-sweep verilator_simple formal formal-build formal-sweep clean
+formal-coverage: formal-build
+	@rm -f coverage_formal_seed_*.dat formal_coverage_merged.dat
+	@for s in $$(seq 1 $(N)); do \
+	  ./$(FORMAL_BIN) +verilator+seed+$$s > /dev/null 2>&1; \
+	  mv coverage.dat coverage_formal_seed_$$s.dat; \
+	done
+	@verilator_coverage -write formal_coverage_merged.dat coverage_formal_seed_*.dat
+	@echo "=== cp_* cover-point hits across $(N) seeds (axi4lite_covers.sv) ==="
+	@verilator_coverage --filter-type user --report hier formal_coverage_merged.dat \
+	     | awk '/u_covers\..*cp_/{name=$$0; sub(/.*cp_/,"cp_",name)} \
+	            /user *:/{if(name!=""){line=$$0; sub(/^.*: */,"",line); \
+	                       print name": "line; name=""}}'
+	@rm -f coverage_formal_seed_*.dat formal_coverage_merged.dat
+
+.PHONY: uvm uvm-build uvm-sweep verilator_simple formal formal-build formal-sweep formal-coverage clean
 
 clean:
-	rm -rf obj_dir obj_dir_simple obj_dir_formal *.vcd
+	rm -rf obj_dir obj_dir_simple obj_dir_formal *.vcd *.dat

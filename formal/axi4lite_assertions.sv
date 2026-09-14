@@ -155,8 +155,15 @@ module axi4lite_assertions #(
   a_bvalid_requires_aw_and_w: assert property ($rose(bvalid) |-> aw_seen_q && w_seen_q)
     else $error("BVALID asserted before AW and W handshakes both completed");
 
-  // 2. The slave must not wait for BREADY before asserting BVALID
-  a_bvalid_not_wait_bready: assert property ((aw_seen_q && w_seen_q && !bvalid) |-> ##[0:1] bvalid)
+  // 2. The slave must not wait for BREADY before asserting BVALID.
+  // `##0` in a `##[0:1]` range here would be dead code: the antecedent's
+  // own `!bvalid` already rules out bvalid being true at that same
+  // sampled cycle, so the range collapsed to exactly `##1` -- i.e.
+  // `|=>` (which is defined as `|-> ##1`). Note `bready` never appears
+  // in this property at all -- that omission, not the delay width, is
+  // what actually encodes "does not wait for BREADY": a fixed,
+  // BREADY-independent deadline for BVALID to rise.
+  a_bvalid_not_wait_bready: assert property ((aw_seen_q && w_seen_q && !bvalid) |=> bvalid)
     else $error("BVALID delayed past expected latency after AW+W complete -- possible BREADY dependency");
 
 
