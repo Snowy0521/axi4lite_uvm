@@ -1,0 +1,17 @@
+[options]
+mode cover
+depth 40
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -sv -formal -D YOSYS_NATIVE_BMC axi4lite_slave.sv axi4lite_assumptions.sv axi4lite_assertions.sv axi4lite_covers.sv formal_tb_bmc.sv
+prep -top formal_tb_bmc
+
+[files]
+../rtl/axi4lite_slave.sv
+axi4lite_assumptions.sv
+axi4lite_assertions.sv
+axi4lite_covers.sv
+formal_tb_bmc.sv

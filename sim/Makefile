@@ -22,6 +22,13 @@
 # cover-point hit data, and reports which of axi4lite_covers.sv's cp_*
 # points were (or weren't) ever reached across the whole sweep:
 #   make formal-coverage N=50
+#
+# `formal-bmc` runs real, exhaustive BMC (flow #1) via SymbiYosys + yosys's
+# own Verilog frontend -- no Verific license needed, and no bound on which
+# inputs get exercised (every master signal is a free BMC variable, not
+# driven by axi4lite_formal_driver.sv). See ../formal/bmc.sby and
+# ../formal/formal_tb_bmc.sv. `formal-bmc-cover` is its cover-reachability
+# counterpart, parallel to `formal-coverage` above.
 # ============================================================================
 
 TEST      ?= axi4lite_smoke_test
@@ -165,7 +172,24 @@ formal-coverage: formal-build
 	                       print name": "line; name=""}}'
 	@rm -f coverage_formal_seed_*.dat formal_coverage_merged.dat
 
-.PHONY: uvm uvm-build uvm-sweep verilator_simple formal formal-build formal-sweep formal-coverage clean
+# ============================================================================
+# Real, exhaustive BMC via SymbiYosys + yosys's native (no Verific needed)
+# Verilog frontend -- ../formal/formal_tb_bmc.sv + ../formal/bmc.sby. Every
+# master signal is a free BMC variable (no driver, no clock/reset
+# generator); legality comes entirely from axi4lite_assumptions.sv's
+# `assume property` statements. See formal_tb.sv's header comment for how
+# this differs from the `formal`/`formal-sweep` targets above.
+# ============================================================================
+formal-bmc:
+	cd $(FORMAL_DIR) && sby -f bmc.sby
+
+# Reachability coverage for the BMC flow, parallel to `formal-coverage`
+# above but via SymbiYosys `mode cover` instead of Verilator.
+formal-bmc-cover:
+	cd $(FORMAL_DIR) && sby -f cover.sby
+
+.PHONY: uvm uvm-build uvm-sweep verilator_simple formal formal-build formal-sweep formal-coverage formal-bmc formal-bmc-cover clean
 
 clean:
 	rm -rf obj_dir obj_dir_simple obj_dir_formal *.vcd *.dat
+	rm -rf $(FORMAL_DIR)/bmc $(FORMAL_DIR)/cover

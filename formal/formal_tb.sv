@@ -8,17 +8,32 @@
 // the DUT's internal `regfile`), and axi4lite_covers.sv (reachability
 // coverage for the two spec rules that have no assert/assume of their own).
 //
-// Written to work two ways:
-//   1. True formal tool (JasperGold, VC Formal, Questa Formal, ...): the
-//      tool drives clk/reset itself via its own `clock`/`reset` commands
-//      and treats every input as a free variable constrained. In that
-//      flow, comment out the `always #5 clk = ~clk;` generator and the
-//      `initial` reset block below -- the tool supplies both.
-//   2. Bounded/simulation-based assertion checking (e.g. Verilator with
-//      SVA support, or any simulator run as a smoke check before a real
-//      formal tool is available): leave the generator and reset block
-//      active, and this becomes a self-contained, randomly-driven
-//      testbench that still exercises every assume/assert pair.
+// This file is flow #2 below. Flow #1 -- real, exhaustive BMC with no
+// license required -- turned out to also be achievable and now has its
+// own harness; see formal_tb_bmc.sv (top module, no clk/reset generator
+// or driver -- every master signal is a free BMC variable) and bmc.sby
+// (SymbiYosys job, `sby -f bmc.sby`), both in this directory. Getting
+// there required hand-lowering every property in axi4lite_assumptions.sv/
+// axi4lite_assertions.sv/axi4lite_covers.sv out of `##`/`|->`/`|=>`/
+// `throughout`/`[->1]` and `default clocking`/`default disable iff`
+// entirely (yosys's native Verilog frontend, without a Verific license,
+// can't parse any of those -- confirmed by minimal repro) -- see those
+// three files' own header comments for the rewrite this forced, and
+// `` `ifdef YOSYS_NATIVE_BMC `` for the handful of spots (an `$initstate`
+// reset seed, and the $isunknown-based X-safety checks a yosys undef-
+// modeling quirk makes falsely fail under BMC) where the two flows
+// genuinely need different content.
+//
+//   1. True formal tool / exhaustive BMC: formal_tb_bmc.sv + bmc.sby
+//      (SymbiYosys + yosys's native frontend), or a licensed tool
+//      (JasperGold, VC Formal, Questa Formal, ...) pointed at the same
+//      three assume/assert/cover files plus its own clock/reset commands.
+//   2. Bounded/simulation-based assertion checking (Verilator, or any
+//      simulator run as a smoke check): this file. Keeps its own clock
+//      generator, reset `initial` block, and axi4lite_formal_driver
+//      instance, making it a self-contained, randomly-driven testbench
+//      that still exercises every assume/assert pair -- just not
+//      exhaustively.
 // ============================================================================
 
 `timescale 1ns/1ps
@@ -56,6 +71,13 @@ module formal_tb;
   logic [1:0]              rresp;
   logic                    rvalid;
   logic                    rready;
+
+  // Whitebox debug port (see axi4lite_slave.sv): a real port now instead
+  // of the `dut.regfile` cross-module reference this file used to rely
+  // on, so the same connection works for both flows -- yosys's native
+  // frontend (flow #1's BMC harness, formal_tb_bmc.sv) can't resolve an
+  // XMR into a submodule at all (confirmed by minimal repro).
+  logic [NUM_REGS-1:0][DATA_WIDTH-1:0] regfile_dbg;
 
   // ------------------------------------------------------------------
   // Clock / reset -- see the header comment: comment this block out
@@ -151,7 +173,7 @@ module formal_tb;
     .rresp   (rresp),
     .rvalid  (rvalid),
     .rready  (rready),
-    .regfile (dut.regfile)
+    .regfile (regfile_dbg)
   );
 
   // ------------------------------------------------------------------

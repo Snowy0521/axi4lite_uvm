@@ -53,19 +53,39 @@ module axi4lite_slave #(
   output logic [DATA_WIDTH-1:0]   rdata,
   output logic [1:0]              rresp,
   output logic                    rvalid,
-  input  logic                    rready
+  input  logic                    rready,
+
+  // Whitebox debug port: exposes the internal register file for
+  // axi4lite_assertions.sv's byte-lane checks. Left unconnected by every
+  // other instantiation site (tb_top.sv, tb_simple.sv use explicit port
+  // lists that don't mention it), so it's free for formal_tb_bmc.sv to
+  // wire up directly -- yosys's native frontend can't resolve a
+  // hierarchical cross-module reference like `dut.regfile` at all
+  // (confirmed by minimal repro: it silently creates an unconnected
+  // implicit wire instead), so unlike formal_tb.sv (which uses that XMR
+  // under Verilator, where it does work), the BMC harness needs a real
+  // port.
+  output logic [NUM_REGS-1:0][DATA_WIDTH-1:0] regfile_dbg
 );
   
-  initial begin 
-	  assert (DATA_WIDTH == 32 || DATA_WIDTH == 64)
-	  else $fatal(1, "axi4lite_slave: DATA_WIDTH=%0d is not legal, must be 32 or 64", DATA_WIDTH);
-  end   
+  initial begin
+	  if (!(DATA_WIDTH == 32 || DATA_WIDTH == 64))
+	    $fatal(1, "axi4lite_slave: DATA_WIDTH=%0d is not legal, must be 32 or 64", DATA_WIDTH);
+  end
 
   localparam int ADDR_LSB = $clog2(DATA_WIDTH / 8);
   // -----------------------------------------------------------------------
   // Register file
   // -----------------------------------------------------------------------
-  logic [DATA_WIDTH-1:0] regfile [NUM_REGS];
+  // Packed 2D array (not an unpacked array dimension): yosys's native
+  // Verilog frontend (no Verific) can't parse an unpacked-array port at
+  // all (`input logic [W-1:0] regfile [N]` -- confirmed by minimal
+  // repro), which axi4lite_assertions.sv's whitebox `regfile` port needs
+  // to be. A packed 2D array indexes identically (`regfile[i]`,
+  // `regfile[i][b*8+:8]`) and IS just a plain bit vector at the port
+  // boundary, so it parses fine either way.
+  logic [NUM_REGS-1:0][DATA_WIDTH-1:0] regfile;
+  assign regfile_dbg = regfile;
 
   // -----------------------------------------------------------------------
   // Write channel handshake state
@@ -98,7 +118,7 @@ module axi4lite_slave #(
       // simulator-specific uninitialized-memory behavior (2-state tools
       // read 0, 4-state tools read X) -- deterministic, portable value
       // for a read of any never-written register, on every simulator.
-      regfile        <= '{default: '0};
+      regfile        <= '0;
     end else begin
       // latch AW
       if (awvalid && awready) begin // cycle N
@@ -114,7 +134,8 @@ module axi4lite_slave #(
 
       // fire the actual write once both halves have arrived
       if (aw_hs_done && w_hs_done && !bvalid) begin // cycle N+1
-        automatic int unsigned word_idx = awaddr_latched[ADDR_WIDTH-1: ADDR_LSB];
+        automatic int unsigned word_idx;
+        word_idx = awaddr_latched[ADDR_WIDTH-1: ADDR_LSB];
         if (word_idx < NUM_REGS) begin
           for (int b = 0; b < DATA_WIDTH/8; b++) begin
             if (wstrb_latched[b])
@@ -147,7 +168,8 @@ module axi4lite_slave #(
       rresp  <= 2'b00;
     end else begin
       if (arvalid && arready) begin
-        automatic int unsigned word_idx = araddr[ADDR_WIDTH-1 : ADDR_LSB];
+        automatic int unsigned word_idx;
+        word_idx = araddr[ADDR_WIDTH-1 : ADDR_LSB];
         if (word_idx < NUM_REGS) begin
           rdata <= regfile[word_idx];
           rresp <= AXI_RESP_OKAY;
