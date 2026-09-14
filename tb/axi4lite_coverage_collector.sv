@@ -55,10 +55,18 @@ class axi4lite_coverage_collector extends uvm_subscriber #(axi4lite_txn);
 	//	illegal_bins invalid_in_range_err = binsof(cp_addr.in_range) && binsof(cp_resp.slverr);
 	//}
 	
-        // alternative
+        // alternative: illegal_bins works fine on a plain coverpoint --
+        // this tool just rejects illegal_bins inside a cross specifically
+        // -- so this keeps the same active-checking intent as the
+        // commented-out cross above (an in-range access must never get
+        // SLVERR, an out-of-range access must never get OKAY), just
+        // spelled as one coverpoint over the concatenated
+        // {out_of_range, resp} value instead of a cross.
         cp_addr_resp_comb: coverpoint {(addr > (axi4lite_pkg::NUM_REGS-1)*axi4lite_pkg::STRB_WIDTH), resp} {
-    	   bins in_range_ok       = {3'b0_00}; 
-     	   bins out_of_range_err  = {3'b1_10}; 
+    	   bins in_range_ok       = {3'b0_00};
+     	   bins out_of_range_err  = {3'b1_10};
+    	   illegal_bins invalid_in_range_err     = {3'b0_10}; // in-range write/read got SLVERR
+    	   illegal_bins invalid_out_of_range_ok  = {3'b1_00}; // out-of-range write/read got OKAY
     	}
     endgroup
 
