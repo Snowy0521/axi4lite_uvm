@@ -27,6 +27,21 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
       `uvm_fatal("NOVIF", "virtual interface (driver modport) not found in config_db")
   endfunction
 
+  // ------------------------------------------------------------------
+  // drive_write()/drive_read() have no notion of reset either -- each
+  // just waits on a handshake with a fixed-cycle timeout watchdog. Left
+  // alone, a mid-drive reset is actively dangerous, not just a no-op:
+  // the DUT's *_hs_done/bvalid flops clear to 0 on reset, which makes
+  // awready/wready read back as 1 and bresp read back as OKAY
+  // (axi4lite_slave.sv) -- exactly what a real completed handshake looks
+  // like. A driver still asserting awvalid/wvalid at that instant can
+  // latch those reset-driven values as a *successful* write that never
+  // actually happened, silently. So each item below races the drive
+  // against a reset watcher: whichever finishes first wins, the loser
+  // gets killed via disable fork, and a reset "win" is reported (as a
+  // warning, not an error -- this is an expected outcome of injecting
+  // reset, not a DUT bug) and re-synced before pulling the next item.
+  // ------------------------------------------------------------------
   task run_phase(uvm_phase phase);
 
     // super.run_phase(phase); --- IGNORE --- // its a virtual task, so it does nothing anyway
@@ -36,12 +51,40 @@ class axi4lite_driver extends uvm_driver #(axi4lite_txn);
 
     forever begin
       axi4lite_txn tr;
+      bit aborted = 0;
+
       seq_item_port.get_next_item(tr);
       `uvm_info("DRV", $sformatf("Got transaction: op=%0d addr=0x%0h data=0x%0h", tr.op, tr.addr, tr.wdata), UVM_LOW)
-      if (tr.op == AXI_WRITE) drive_write(tr);
-      else                    drive_read(tr);
+
+      fork
+        begin
+          if (tr.op == AXI_WRITE) drive_write(tr);
+          else                    drive_read(tr);
+        end
+        begin
+          wait_for_reset();
+          aborted = 1;
+        end
+      join_any
+      disable fork;
+
       seq_item_port.item_done();
+
+      if (aborted) begin
+        `uvm_warning("DRV_RESET", $sformatf(
+          "reset observed mid-drive (op=%0d addr=0x%0h) -- transaction aborted, re-syncing",
+          tr.op, tr.addr))
+        if (!vif.rst_n) @(posedge vif.rst_n);
+        reset_signals();
+      end
     end
+  endtask
+
+  // returns immediately if rst_n is already low (reset asserted before this
+  // item even started), else blocks until the next 1/x/z -> 0 transition
+  task wait_for_reset();
+    if (!vif.rst_n) return;
+    @(negedge vif.rst_n);
   endtask
 
   task reset_signals();
