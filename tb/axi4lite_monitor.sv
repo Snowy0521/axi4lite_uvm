@@ -17,11 +17,13 @@ class axi4lite_monitor extends uvm_monitor;
     .DATA_WIDTH(axi4lite_pkg::DATA_WIDTH)
   ).monitor vif;
 
-  uvm_analysis_port #(axi4lite_txn) ap;  
+  uvm_analysis_port #(axi4lite_txn) ap;
+  uvm_analysis_port #(bit)          rst_ap; // fires once per observed reset assertion
 
   function new(string name, uvm_component parent);
     super.new(name, parent);
     ap = new("ap", this); // TLM port, can not be registered in config_db, just new it
+    rst_ap = new("rst_ap", this);
   endfunction
 
   function void build_phase(uvm_phase phase);
@@ -33,11 +35,36 @@ class axi4lite_monitor extends uvm_monitor;
        	`uvm_fatal("NOVIF", "virtual interface (monitor modport) not found in config_db")
   endfunction
 
+  // ------------------------------------------------------------------
+  // monitor_write()/monitor_read() are passive observers with no notion
+  // of reset -- left alone, a mid-run reset would either wedge them
+  // waiting on a handshake that reset just severed, or leave them
+  // running while the DUT's regfile silently clears underneath the
+  // scoreboard's shadow model. So each run_phase iteration below races
+  // both monitor tasks against a reset watcher: whichever transactions
+  // were in flight get discarded via disable fork, the scoreboard is
+  // told to drop its shadow state via rst_ap, and monitoring restarts
+  // clean once reset deasserts.
+  // ------------------------------------------------------------------
   task run_phase(uvm_phase phase);
-    fork
-      monitor_write();
-      monitor_read();
-    join
+    forever begin
+      fork
+        monitor_write();
+        monitor_read();
+        wait_for_reset();
+      join_any
+      disable fork;
+
+      `uvm_info("MON", "reset observed, discarding in-flight transaction tracking", UVM_LOW)
+      rst_ap.write(1'b1);
+
+      if (!vif.rst_n) @(posedge vif.rst_n);
+    end
+  endtask
+
+  // returns once a reset assertion (any 1/x/z -> 0 transition on rst_n) is observed
+  task wait_for_reset();
+    @(negedge vif.rst_n);
   endtask
 
   // ------------------------------------------------------------------

@@ -7,10 +7,13 @@
 // every observed write, and checks every observed read against it.
 // ============================================================================
 
+`uvm_analysis_imp_decl(_rst) // separate write_rst() imp -- can't reuse `imp`, which is typed to axi4lite_txn
+
 class axi4lite_scoreboard extends uvm_component;
   `uvm_component_utils(axi4lite_scoreboard)
 
-  uvm_analysis_imp #(axi4lite_txn, axi4lite_scoreboard) imp; // terminator, write in scoreboard.write()
+  uvm_analysis_imp #(axi4lite_txn, axi4lite_scoreboard)      imp;     // terminator, write in scoreboard.write()
+  uvm_analysis_imp_rst #(bit, axi4lite_scoreboard)           rst_imp; // terminator, write in scoreboard.write_rst()
 
   // shadow model of the DUT's register file -- word-addressed
   // chose associative array for large address spaces if NUM_REGS gets big
@@ -20,7 +23,8 @@ class axi4lite_scoreboard extends uvm_component;
   function new(string name, uvm_component parent);
     super.new(name, parent);
     imp = new("imp", this);
-  endfunction 
+    rst_imp = new("rst_imp", this);
+  endfunction
 
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
@@ -43,6 +47,14 @@ class axi4lite_scoreboard extends uvm_component;
       num_reads++;
       handle_read(tr, word_idx, in_range);
     end
+  endfunction
+
+  // called automatically by the monitor's reset analysis port on every observed
+  // reset assertion -- the DUT's regfile clears to '0 on reset (axi4lite_slave.sv),
+  // so the shadow model must too, or a post-reset read compares against stale
+  // pre-reset data and reports a false mismatch.
+  function void write_rst(bit rst);
+    shadow_regs.delete();
   endfunction
 
   // write: update the shadow model and check for out-of-range writes
