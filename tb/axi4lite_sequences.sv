@@ -90,7 +90,7 @@ class axi4lite_smoke_seq extends axi4lite_base_seq;
 
     for (int i = 0; i < axi4lite_pkg::NUM_SMOKE_TXNS; i++) begin
       wr = axi4lite_write_seq::type_id::create($sformatf("wr%0d", i));
-      wr.addr  = i * REG_STRIDE;
+      wr.addr  = i * axi4lite_pkg::STRB_WIDTH;
       wr.wdata = {(axi4lite_pkg::DATA_WIDTH/32){32'hA000_0000 + i}};
       wr.wstrb = '1;
       wr.start(m_sequencer, this);
@@ -98,7 +98,7 @@ class axi4lite_smoke_seq extends axi4lite_base_seq;
 
     for (int i = 0; i < axi4lite_pkg::NUM_SMOKE_TXNS; i++) begin
       rd = axi4lite_read_seq::type_id::create($sformatf("rd%0d", i));
-      rd.addr = i * REG_STRIDE;
+      rd.addr = i * axi4lite_pkg::STRB_WIDTH;
       rd.start(m_sequencer, this);
     end
   endtask

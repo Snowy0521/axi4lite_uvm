@@ -26,3 +26,7 @@ __pycache__/
 # Verilator generated files
 sim/obj_dir/
 sim/obj_dir_*/
+sim/*.dat
+
+# doc
+doc/*.md
